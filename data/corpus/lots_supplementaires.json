@@ -28,5 +28,10 @@
   "aides_jeunes",
   "data/unites/aides_jeunes.jsonl",
   "data/lots/aides_jeunes/sortie_*.jsonl"
+ ],
+ [
+  "legi",
+  "data/unites/legi.jsonl",
+  "data/lots/legi/sortie_*.jsonl"
  ]
 ]
