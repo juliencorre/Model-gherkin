@@ -23,7 +23,7 @@ for s in sorted(glob.glob(str(racine / "data/lots/*/sortie_*.jsonl"))):
     for r in sortie:
         k = re.sub(r"\W+", " ", r["specification"]).lower()
         if k in spec_vues and spec_vues[k] != (p.name, r["id"]):
-            print("SPEC EN DOUBLE", r["id"], p.name, spec_vues[k]); anomalies += 1
+            print("avertissement : spécification en double (écartée par construire_corpus.py)", r["id"], p.name, spec_vues[k])
         spec_vues[k] = (p.name, r["id"])
 print("sorties vérifiées:", len(glob.glob(str(racine / 'data/lots/*/sortie_*.jsonl'))), "anomalies:", anomalies)
 sys.exit(1 if anomalies else 0)
