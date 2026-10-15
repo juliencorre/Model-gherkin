@@ -607,14 +607,22 @@ function updateChips() {
 for (const c of $$("#limitChips .chip")) c.addEventListener("click", () => {
   $("#trainLimit").value = c.dataset.v;
   updateChips(); updateDerived(); suggestName();
+  if (state.preview) renderPreview(state.preview);
 });
 $("#trainLimit").addEventListener("input", () => { updateChips(); updateDerived(); suggestName(); });
 for (const inp of $$("[data-k^='training.'], [data-k='data.train_limit'], [data-k='data.eval_limit']")) inp.addEventListener("input", updateDerived);
+// Les compteurs de l'aperçu suivent les limites saisies, sans nouvelle analyse.
+for (const inp of $$("[data-k='data.train_limit'], [data-k='data.eval_limit']")) inp.addEventListener("input", () => { if (state.preview) renderPreview(state.preview); });
 
 function usedTrainPairs() {
   if (!state.preview) return null;
   const lim = Number($("#trainLimit").value) || 0;
   return lim ? Math.min(lim, state.preview.disponibles_train) : state.preview.disponibles_train;
+}
+function usedEvalPairs() {
+  if (!state.preview) return null;
+  const lim = Number($("[data-k='data.eval_limit']").value) || 0;
+  return lim ? Math.min(lim, state.preview.eval_disponibles) : state.preview.eval_disponibles;
 }
 function updateDerived() {
   const bs = Number($("[data-k='training.per_device_train_batch_size']").value) || 0;
@@ -632,8 +640,7 @@ function updateDerived() {
   const epochs = Number($("[data-k='training.num_train_epochs']").value.replace(",", ".")) || 0;
   const perEpoch = Math.ceil(n / (bs * ga));
   const steps = maxSteps > 0 ? maxSteps : Math.ceil(perEpoch * epochs);
-  const evalLim = Number($("[data-k='data.eval_limit']").value) || 0;
-  const nEval = evalLim ? Math.min(evalLim, state.preview.eval_disponibles) : state.preview.eval_disponibles;
+  const nEval = usedEvalPairs();
   est.textContent = `${nf(n)} paires d'entraînement · ${nf(nEval)} d'évaluation` +
     (state.preview.test ? ` · ${nf(state.preview.test)} de test` : "") + " · " +
     `≈ ${nf(steps)} pas d'optimisation (${nf(perEpoch)} par époque)`;
@@ -670,20 +677,25 @@ async function preview() {
 function renderPreview(p) {
   const box = $("#preview");
   box.replaceChildren();
-  const used = usedTrainPairs();
+  const used = usedTrainPairs(), usedEval = usedEvalPairs();
   box.append(el("div", { class: "big" }, ...[
     el("div", {}, el("b", { text: nf(p.disponibles_train) }), el("span", { text: "disponibles pour l'entraînement" })),
     el("div", {}, el("b", { text: nf(used) }), el("span", { text: "utilisées" })),
-    el("div", {}, el("b", { text: nf(p.eval) }), el("span", { text: p.eval < p.eval_disponibles ? `pour l'évaluation (sur ${nf(p.eval_disponibles)})` : "pour l'évaluation" })),
+    el("div", {}, el("b", { text: nf(usedEval) }), el("span", { text: usedEval < p.eval_disponibles ? `pour l'évaluation (sur ${nf(p.eval_disponibles)})` : "pour l'évaluation" })),
     p.test ? el("div", {}, el("b", { text: nf(p.test) }), el("span", { text: "de test (évaluation finale)" })) : null,
     el("div", {}, el("b", { text: nf(p.lues) }), el("span", { text: `lues dans ${p.fichiers.length} fichier(s)` })),
   ].filter(Boolean)));
   if (p.prompt_des_donnees) box.append(el("div", { class: "muted", text: "Format « messages » : le prompt système et la consigne des données sont réutilisés tels quels (le prompt système ci-dessous ne sert pas)." }));
+  // Les 10 plus gros groupes, le reste replié : un jeu réel compte des dizaines de domaines.
+  const chip = ([k, v]) => el("span", { text: `${k.replace(/^[a-z]+:/, "")} · ${v}` });
   const groups = (title, g) => {
     const names = Object.entries(g);
     if (!names.length) return null;
-    return el("div", {}, el("div", { class: "muted", text: title }),
-      el("div", { class: "groups" }, ...names.map(([k, v]) => el("span", { text: `${k.replace(/^[a-z]+:/, "")} · ${v}` }))));
+    const rest = names.slice(10);
+    return el("div", {}, el("div", { class: "muted", text: `${title} : ${nf(names.length)}` }),
+      el("div", { class: "groups" }, ...names.slice(0, 10).map(chip)),
+      rest.length ? el("details", {}, el("summary", { text: `${nf(rest.length)} autres groupes` }),
+        el("div", { class: "groups" }, ...rest.map(chip))) : null);
   };
   box.append(groups("Groupes d'entraînement", p.groupes_train) || "", groups(`Groupes d'évaluation (découpage ${p.methode})`, p.groupes_eval) || "");
   const rejets = Object.entries(p.rejets);
