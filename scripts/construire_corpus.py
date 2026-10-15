@@ -169,7 +169,7 @@ def niveau(nom, pid, regle, ctl):
         return "A"
     if regle["type"] in ("openfisca", "cdtn"):
         return "A"  # résultats repris de cas de test exécutés par le moteur de la source
-    return "C" if regle["type"] in ("service_public", "aides_jeunes") else "B"
+    return "C" if regle["type"] in ("service_public", "service_public_2", "legi", "legi_2", "aides_jeunes") else "B"
 
 
 def groupe(regle):
