@@ -1,0 +1,77 @@
+{
+ "date": "2026-10-15",
+ "paires_auditees": 84,
+ "verdicts": {
+  "bon": 52,
+  "mineur": 26,
+  "majeur": 6
+ },
+ "taux_majeur": 0.071,
+ "intervalle_confiance_95_majeur": [
+  0.033,
+  0.147
+ ],
+ "par_type": {
+  "aides_jeunes": {
+   "majeur": 3,
+   "bon": 6,
+   "mineur": 3
+  },
+  "catala": {
+   "bon": 8,
+   "mineur": 3,
+   "majeur": 1
+  },
+  "catala_reste": {
+   "bon": 8,
+   "mineur": 4
+  },
+  "cdtn": {
+   "mineur": 4,
+   "bon": 8
+  },
+  "publicodes": {
+   "bon": 7,
+   "mineur": 3,
+   "majeur": 2
+  },
+  "publicodes_reste": {
+   "bon": 10,
+   "mineur": 2
+  },
+  "service_public": {
+   "bon": 5,
+   "mineur": 7
+  }
+ },
+ "par_niveau": {
+  "A": {
+   "mineur": 4,
+   "bon": 8
+  },
+  "B": {
+   "bon": 28,
+   "mineur": 10,
+   "majeur": 2
+  },
+  "C": {
+   "bon": 11,
+   "majeur": 3,
+   "mineur": 10
+  },
+  "D": {
+   "bon": 5,
+   "mineur": 2,
+   "majeur": 1
+  }
+ },
+ "scores_moyens_sur_5": {
+  "fidelite_spec": 4.25,
+  "fidelite_gherkin": 4.29,
+  "couverture": 3.64,
+  "francais": 4.21,
+  "style": 3.58
+ },
+ "juge": "modèle indépendant du générateur (Opus), consignes scripts/prompts/audit.md",
+ "avertissement": "échantillon de 84 paires, intervalle large ; tous les montants recalculés par le juge étaient justes sauf les erreurs de base de calcul signalées"
+}
