@@ -19,3 +19,7 @@ La note de recherche `research_notes/Corpus de spécifications pour Gherkin/` d�
 - Les dépôts versionnés peuvent contenir des fichiers qui n'appartiennent pas à leur auteur (par exemple des textes de loi dans les exemples Catala, ou des données de tiers). Les textes de loi sont réutilisables (Légifrance), mais cela reste à faire valider par un juriste.
 - Le fichier `LICENCE` du dépôt ARF doit être relu pour confirmer CC BY 4.0, et l'attribution doit être conservée.
 - Les sources en anglais (ARF, DCC) servent surtout à la diversité des types de règles. Le corpus d'entraînement vise le français.
+
+## Sources examinées puis écartées
+
+- **KavinduHansaka/gherkin-english-100k** (Hugging Face, Apache-2.0) : écarté après analyse du premier fichier (20 000 lignes, mesure du 2026-10-15). Le jeu est généré par gabarits : 900 textes d'entrée distincts, 10 titres de fonctionnalité, 5 titres de scénario (« Successful login », « Search by keyword », etc.) et 54 étapes distinctes pour 261 924 étapes au total. Le Gherkin est sans rapport avec le texte d'entrée (par exemple une fonctionnalité bancaire avec un scénario « Search by keyword » sur des objectifs photo). Il n'apprendrait ni la dérivation de scénarios à partir de règles, ni le vocabulaire métier. Ne pas le traduire ni l'utiliser pour l'entraînement.
