@@ -23,25 +23,25 @@
   }
  },
  "v2": {
-  "paires": 42,
+  "paires": 82,
   "verdicts": {
-   "bon": 30,
-   "majeur": 2,
-   "mineur": 10
+   "bon": 62,
+   "majeur": 3,
+   "mineur": 17
   },
-  "taux_bon": 0.714,
-  "taux_majeur": 0.048,
+  "taux_bon": 0.756,
+  "taux_majeur": 0.037,
   "ic95_majeur": [
    0.013,
-   0.158
+   0.102
   ],
   "scores": {
-   "fidelite_spec": 4.52,
-   "fidelite_gherkin": 4.52,
-   "couverture": 3.64,
-   "francais": 4.45,
-   "style": 3.74
+   "fidelite_spec": 4.51,
+   "fidelite_gherkin": 4.55,
+   "couverture": 3.59,
+   "francais": 4.66,
+   "style": 3.71
   }
  },
- "lecture": "v1 = consignes initiales (pilote, lot2, calibration) ; v2 = consignes avec défauts à éviter et relecture obligatoire (vague 1). Écart non significatif sur ces effectifs."
+ "lecture": "v1 = consignes initiales (pilote, lot2, calibration) ; v2 = consignes avec défauts à éviter et relecture obligatoire (vague 1, service_public_2, legi_2). Les paires v2 auditées couvrent catala_reste, publicodes_reste, service_public, service_public_2 et legi_2."
 }
