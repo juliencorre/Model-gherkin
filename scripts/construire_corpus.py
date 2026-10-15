@@ -182,6 +182,8 @@ def main():
     (RACINE / "data/corpus_prive").mkdir(parents=True, exist_ok=True)
     rejets, vus_spec, toutes = [], set(), []
     for nom, f_regles, motif in LOTS:
+        if not (RACINE / f_regles).exists():  # type déclaré mais pas encore extrait
+            continue
         regles = {}
         for l in open(RACINE / f_regles, encoding="utf-8"):
             r = json.loads(l)
