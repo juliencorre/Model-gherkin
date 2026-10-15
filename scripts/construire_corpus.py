@@ -217,6 +217,9 @@ def main():
                 })
         for dossier, jeu in ((sortie, [p for p in paires if p["redistribuable"]]), (RACINE / "data/corpus_prive", paires)):
             (dossier / "pairs").mkdir(parents=True, exist_ok=True)
+            if not jeu:  # aucune paire redistribuable pour ce lot : pas de fichier vide
+                (dossier / "pairs" / f"{nom}.jsonl").unlink(missing_ok=True)
+                continue
             with open(dossier / "pairs" / f"{nom}.jsonl", "w", encoding="utf-8") as fh:
                 for p in jeu:
                     fh.write(json.dumps(p, ensure_ascii=False) + "\n")
