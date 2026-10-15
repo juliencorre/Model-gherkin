@@ -28,11 +28,18 @@ Un contrôle par script a signalé 42 nombres des scénarios absents du texte de
 - **Résidences négatives non vérifiées** : RG-17 donne Mayotte et Saint-Pierre-et-Miquelon comme résidences hors champ ; leur existence comme valeurs du modèle n'est pas vérifiée.
 - **Spécification reformulée par le même modèle que le Gherkin** : la spécification et les scénarios partagent les mêmes erreurs d'interprétation éventuelles. Une relecture humaine est indispensable avant tout entraînement.
 - **Domaine étroit** : loi sociale (SMIC, prestations familiales, aides au logement, ASP, successions). Les autres domaines ne sont pas testés.
-- **Pas de tests Catala utilisés** : les valeurs attendues viennent de la lecture du code, pas de l'exécution du compilateur Catala.
+- **Vérification Catala partielle** : seules les 6 règles SMIC (RG-01 à RG-06) sont vérifiées par le compilateur (voir ci-dessous). Pour les 14 autres, les valeurs attendues viennent de la lecture du code.
+
+## Vérification par le compilateur Catala (2026-10-15)
+
+- Installation : Catala 1.3.0 compilé avec opam (`opam init --bare` sur le miroir `https://opam.ocaml.org`, `opam switch create catala ocaml-system`, `opam install catala.1.3.0`). Les archives GitHub étant bloquées dans cet environnement, ce miroir est indispensable.
+- Contrôle de l'installation : les 32 tests officiels de `smic` et `allocations_familiales` passent (100 %), sur une copie de travail hors dépôt.
+- Vérification des règles SMIC : `scripts/verifier_smic_catala.py` développe les exemples des scénarios non négatifs de RG-01 à RG-06 en 78 cas concrets (date, résidence, montant attendu), les exécute dans le scope `Smic.Smic` et compare. Résultat : **78 cas conformes, 0 écart** (`verification_catala_smic.json`).
+- Non vérifié : les scénarios `@négatif` des règles SMIC (ils portent sur la règle seule, pas sur le module), et les règles RG-07 à RG-20. Leur vérification demande d'écrire des scopes de test avec des structures de données complètes (enfants, ménages, logements). RG-13, RG-15 et RG-16 n'ont pas de code Catala calculé.
 
 ## Suite possible
 
 1. Relire les 16 paires restantes avec un juriste ou un expert métier.
-2. Exécuter les règles Catala (compilateur) pour obtenir des valeurs attendues vérifiées au lieu de les lire dans le code.
+2. Étendre la vérification Catala aux règles RG-07 à RG-20 (scopes de test à écrire règle par règle).
 3. Générer les spécifications avec un modèle et les scénarios avec un autre, pour limiter les erreurs communes.
 4. Passer à l'échelle (centaines de règles) seulement après ces corrections.
