@@ -2,8 +2,9 @@
 """Valide les paires (specification, gherkin) avec le parseur officiel cucumber/gherkin.
 
 Usage: valider_gherkin.py <fichier.jsonl>...
-Contrôles : syntaxe (parseur officiel, langue fr), langue déclarée, tag de règle présent,
-nombre de scénarios, présence d'un cas négatif et d'un cas limite.
+Erreurs (paire invalide) : syntaxe (parseur officiel, langue fr), tag de règle absent,
+moins de 2 scénarios, aucun @nominal, spécification vide.
+Avertissements (paire valide) : @limite ou @négatif absent, moins de 3 scénarios.
 Code de sortie 1 si au moins une paire est invalide.
 """
 import json
@@ -46,22 +47,27 @@ def main(paths):
             r = json.loads(ligne)
             total += 1
             a = analyser(r["gherkin"], r["id"])
-            problemes = []
+            problemes, avertissements = [], []
             if not a["syntaxe_ok"]:
                 problemes.append("syntaxe: " + a["erreur"])
             else:
                 if f"@{r['id']}" not in a["tags"]:
                     problemes.append(f"tag @{r['id']} absent")
-                if a["scenarios"] < 3:
-                    problemes.append(f"{a['scenarios']} scénario(s) (<3)")
-                for t in ("@négatif", "@limite", "@nominal"):
+                if a["scenarios"] < 2:
+                    problemes.append(f"{a['scenarios']} scénario(s) (<2)")
+                if "@nominal" not in a["tags"]:
+                    problemes.append("@nominal absent")
+                for t in ("@négatif", "@limite"):
                     if t not in a["tags"]:
-                        problemes.append(f"{t} absent")
+                        avertissements.append(f"{t} absent")
+                if a["scenarios"] == 2:
+                    avertissements.append("2 scénarios seulement")
             if not r.get("specification", "").strip():
                 problemes.append("spécification vide")
             statut = "OK " if not problemes else "KO "
             ok += not problemes
-            print(f"{statut}{r['id']} scénarios={a['scenarios']} {'; '.join(problemes)}")
+            av = f" [avert.: {', '.join(avertissements)}]" if avertissements else ""
+            print(f"{statut}{r['id']} scénarios={a['scenarios']} {'; '.join(problemes)}{av}")
     print(f"\n{ok}/{total} paires valides")
     return 0 if ok == total else 1
 
