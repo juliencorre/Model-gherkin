@@ -1,1 +1,1 @@
-{"lot": "service_public_2", "id": "S2-04203", "motif": "syntaxe: (35:3): expected: #EOF, #TableRow, #DocStringSeparator, #StepLine, #TagLine, #ExamplesLine, #ScenarioLine, #RuleLine, #Comment, #Empty, got 'Ou le tribunal du lieu où le déménagement a été effectué'"}
+{"lot": "legi_2", "id": "L2-01782", "motif": "spécification en double"}
