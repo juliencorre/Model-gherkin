@@ -41,8 +41,15 @@ class LoraSettings:
 
 @dataclass
 class DataConfig:
-    train_files: list[str] = field(default_factory=lambda: ["data/**/gherkin_fr_*.jsonl"])
-    eval_files: list[str] = field(default_factory=list)
+    # Jeu d'affinage du dépôt (format `messages`, déjà découpé en train / val / test).
+    train_files: list[str] = field(default_factory=lambda: ["data/sft/train.jsonl"])
+    eval_files: list[str] = field(default_factory=lambda: ["data/sft/val.jsonl"])
+    # Jeu de test : réservé à l'évaluation finale (jamais utilisé pour choisir le checkpoint).
+    test_files: list[str] = field(default_factory=lambda: ["data/sft/test.jsonl"])
+    # Avec des fichiers d'évaluation dédiés : retirer de l'entraînement les paires d'un groupe présent dans
+    # l'évaluation. Utile si l'évaluation est faite de dispositifs à part ; à laisser désactivé quand les groupes
+    # sont des domaines larges partagés par le découpage fourni (cas de data/sft).
+    drop_train_groups_in_eval: bool = False
     # Fichiers joints par `id` pour compléter les champs manquants (ex. `domaine` des fichiers regles_*.jsonl).
     metadata_files: list[str] = field(default_factory=list)
     # Renommage des champs : {"specification": "ma_colonne", "gherkin": "...", "id": "..."}.

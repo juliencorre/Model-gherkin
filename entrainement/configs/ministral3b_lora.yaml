@@ -17,11 +17,13 @@ lora:
   # target_modules : par défaut toutes les projections linéaires du modèle de langage, vision exclue.
 
 data:
-  train_files:
-    - data/**/gherkin_fr_*.jsonl
-  eval_files: []          # ex. data/eval/eval_300.jsonl : jeu d'évaluation revu à la main
-  metadata_files:         # jointure par id pour récupérer le domaine (découpage sans fuite)
-    - data/**/regles_*.jsonl
+  # Jeu d'affinage du dépôt (format « messages », découpé par l'agent de préparation du corpus).
+  train_files: [data/sft/train.jsonl]
+  eval_files: [data/sft/val.jsonl]     # perte d'évaluation, sonde qualité, choix du meilleur checkpoint
+  test_files: [data/sft/test.jsonl]    # évaluation finale uniquement
+  drop_train_groups_in_eval: false     # les domaines sont larges et partagés par le découpage fourni
+  # Paires pilotes (champs id / specification / gherkin) : train_files: [data/pilote/gherkin_fr_*.jsonl],
+  # eval_files: [], test_files: [], metadata_files: [data/pilote/regles_20.jsonl] et découpage automatique.
   group_by: [dispositif, domaine, groupe, source]
   eval_ratio: 0.1
   require_valid_gherkin: true

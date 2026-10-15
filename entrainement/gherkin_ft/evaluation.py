@@ -24,14 +24,16 @@ except ImportError:  # pragma: no cover
 
 
 def score_prediction(pair: Pair, prediction: str, finished: bool, expected_language: str | None) -> dict:
-    a = analyze_gherkin(prediction, pair.id, pair.specification, expected_language)
-    ref = analyze_gherkin(pair.gherkin, pair.id, pair.specification, expected_language)
+    # Le tag de règle n'est exigé que si la référence le porte (data/sft retire les tags @RG-xx).
+    rid = pair.rule_tag_id
+    a = analyze_gherkin(prediction, rid, pair.specification, expected_language)
+    ref = analyze_gherkin(pair.gherkin, rid, pair.specification, expected_language)
     row = {
         "id": pair.id,
         "group": pair.group,
-        "score": quality_score(a, pair.id),
-        "score_reference": quality_score(ref, pair.id),
-        "criteres": score_components(a, pair.id),
+        "score": quality_score(a, rid),
+        "score_reference": quality_score(ref, rid),
+        "criteres": score_components(a, rid),
         "termine": finished,
         "analyse": a.to_dict(),
         "scenarios_reference": ref.n_scenarios,
@@ -78,7 +80,8 @@ def aggregate(rows: list[dict]) -> dict:
 
 
 def predict(model, tokenizer, pairs: list[Pair], system_prompt: str, user_template: str | None, params: GenerationParams):
-    conversations = [build_prompt_messages(p.id, p.specification, system_prompt, user_template) for p in pairs]
+    conversations = [p.prompt or build_prompt_messages(p.id, p.specification, system_prompt, user_template)
+                     for p in pairs]
     return generate(model, tokenizer, conversations, params)
 
 

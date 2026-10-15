@@ -22,6 +22,8 @@ def test_train_evaluate_merge_generate(tmp_path):
         f"model.name_or_path={model_dir}",
         f"data.train_files=[{FIX / 'paires.jsonl'}]",
         f"data.metadata_files=[{FIX / 'regles.jsonl'}]",
+        "data.eval_files=[]",
+        "data.test_files=[]",
         "data.eval_ratio=0.3",
         "data.max_length=1024",
         f"training.output_dir={run_dir}",

@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -18,7 +19,8 @@ FIX = Path(__file__).parent / "fixtures"
 
 
 def cfg(**kw) -> DataConfig:
-    base = dict(train_files=[str(FIX / "paires.jsonl")], metadata_files=[str(FIX / "regles.jsonl")])
+    base = dict(train_files=[str(FIX / "paires.jsonl")], metadata_files=[str(FIX / "regles.jsonl")],
+                eval_files=[], test_files=[])
     base.update(kw)
     return DataConfig(**base)
 
@@ -53,7 +55,7 @@ def test_explicit_eval_files_remove_same_group_from_train(tmp_path):
     first["specification"] += " (variante)"
     first["domaine"] = "smic"
     eval_file.write_text(json.dumps(first, ensure_ascii=False) + "\n", encoding="utf-8")
-    train, evals, report = load_dataset_splits(cfg(eval_files=[str(eval_file)]))
+    train, evals, report = load_dataset_splits(cfg(eval_files=[str(eval_file)], drop_train_groups_in_eval=True))
     assert [p.id for p in evals] == ["EVAL-1"]
     assert all(p.group != "domaine:smic" for p in train)
     assert report.dropped["groupe présent dans l'évaluation"] == 2
@@ -80,7 +82,7 @@ def test_invalid_gherkin_and_duplicates_are_dropped(tmp_path):
     ]
     f.write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in rows) + "\n", encoding="utf-8")
     report = DataReport()
-    c = DataConfig(train_files=[str(f)])
+    c = DataConfig(train_files=[str(f)], eval_files=[], test_files=[])
     pairs = deduplicate(load_pairs(c.train_files, c, report), report)
     assert sorted(p.id for p in pairs) == ["FENCE", "RG-01"]
     assert report.dropped["gherkin invalide"] == 1
@@ -114,3 +116,42 @@ def test_config_overrides_and_unknown_keys(tmp_path):
 def test_qlora_config_loads():
     c = load_config(Path(__file__).parents[1] / "configs" / "ministral3b_qlora.yaml")
     assert c.model.load_in_4bit and c.training.optim == "paged_adamw_8bit"
+
+
+def to_messages(record: dict, system: str = "Système SFT") -> dict:
+    """Paire pilote convertie au format `messages` de data/sft (tags @RG retirés, domaine dans `meta`)."""
+    gherkin = re.sub(r" ?@RG-\d+", "", record["gherkin"])
+    user = f"Spécification :\n{record['specification']}\n\nRédige le fichier Gherkin (en français) qui teste cette spécification."
+    return {"id": f"pilote-{record['id']}", "meta": {"domaine": record["domaine"], "niveau": "A"},
+            "messages": [{"role": "system", "content": system}, {"role": "user", "content": user},
+                         {"role": "assistant", "content": gherkin}]}
+
+
+def test_messages_format_with_explicit_val_and_test(tmp_path):
+    records = [json.loads(l) for l in (FIX / "paires.jsonl").read_text(encoding="utf-8").splitlines()]
+    domains = {json.loads(l)["id"]: json.loads(l)["domaine"] for l in (FIX / "regles.jsonl").read_text(encoding="utf-8").splitlines()}
+    msgs = [to_messages({**r, "domaine": domains[r["id"]]}) for r in records]
+    for name, rows in (("train", msgs[:4]), ("val", msgs[4:5]), ("test", msgs[5:])):
+        (tmp_path / f"{name}.jsonl").write_text("\n".join(json.dumps(m, ensure_ascii=False) for m in rows), encoding="utf-8")
+    c = DataConfig(train_files=[str(tmp_path / "train.jsonl")], eval_files=[str(tmp_path / "val.jsonl")],
+                   test_files=[str(tmp_path / "test.jsonl")])
+    train, evals, report = load_dataset_splits(c)
+    assert (len(train), len(evals), len(report.test_pairs)) == (4, 1, 1)  # domaines partagés : rien de retiré
+    assert report.split_method == "explicite" and not report.dropped
+    assert train[0].group.startswith("domaine:") and train[0].meta["niveau"] == "A"
+    # La spécification est isolée de la consigne ; le prompt des données est gardé pour l'entraînement.
+    assert train[0].specification == records[0]["specification"]
+    assert [m["role"] for m in train[0].prompt] == ["system", "user"]
+    assert report.prompt_template == {
+        "system_prompt": "Système SFT",
+        "user_template": "Spécification :\n{specification}\n\nRédige le fichier Gherkin (en français) qui teste cette spécification.",
+    }
+    # Sans tag @RG dans les références, le critère « tag de règle » ne s'applique pas.
+    assert train[0].rule_tag_id is None
+    pilot = load_pairs([str(FIX / "paires.jsonl")], cfg(), DataReport())
+    assert pilot[0].rule_tag_id == "RG-01"
+    from gherkin_ft.evaluation import score_prediction
+    row = score_prediction(train[0], train[0].gherkin, True, "fr")
+    assert row["score"] == row["score_reference"] == 1.0
+    from gherkin_ft.prompts import build_user_prompt
+    assert build_user_prompt("x", records[0]["specification"], report.prompt_template["user_template"]) == train[0].prompt[1]["content"]

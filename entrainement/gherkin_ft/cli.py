@@ -45,14 +45,16 @@ def cmd_train(args) -> int:
 
 
 def _load_eval_pairs(path: str, expected_language: str):
-    from .data import DataReport, Pair, load_pairs, read_records
+    from .data import DataReport, Pair, load_pairs, normalize_prompt_specs, read_records
 
     records = read_records(Path(path))
-    if records and {"id", "specification", "gherkin", "group"} <= set(records[0]):
-        fields = {"id", "specification", "gherkin", "group", "split", "source_file", "meta"}
+    if records and {"id", "specification", "gherkin", "group"} <= set(records[0]):  # data/*.jsonl d'un run
+        fields = {"id", "specification", "gherkin", "group", "split", "source_file", "meta", "prompt"}
         return [Pair(**{k: v for k, v in r.items() if k in fields}) for r in records]
     cfg = DataConfig(require_valid_gherkin=False, expected_language=expected_language)
-    return load_pairs([path], cfg, DataReport())
+    pairs = load_pairs([path], cfg, DataReport())
+    normalize_prompt_specs(pairs)
+    return pairs
 
 
 def cmd_evaluate(args) -> int:
@@ -65,10 +67,15 @@ def cmd_evaluate(args) -> int:
     base = args.model or (None if args.adapter else cfg.model.name_or_path)
     model, tokenizer, info = load_for_inference(base, args.adapter, load_in_4bit=args.load_in_4bit)
     data = args.data
-    if data is None and args.adapter and Path(args.adapter).parent.joinpath("data", "eval.jsonl").exists():
-        data = str(Path(args.adapter).parent / "data" / "eval.jsonl")
+    if data is None and args.adapter:  # jeu de test du run, sinon son jeu d'évaluation
+        for name in ("test.jsonl", "eval.jsonl"):
+            candidate = Path(args.adapter).parent / "data" / name
+            if candidate.exists():
+                data = str(candidate)
+                break
     if data is None:
-        print("Indiquez --data (fichier de paires) : aucun eval.jsonl trouvé à côté de l'adaptateur.", file=sys.stderr)
+        print("Indiquez --data (fichier de paires) : aucun test.jsonl ni eval.jsonl à côté de l'adaptateur.",
+              file=sys.stderr)
         return 2
     lang = info.get("expected_language", cfg.data.expected_language)
     pairs = _load_eval_pairs(data, lang)
@@ -185,7 +192,7 @@ def build_parser() -> argparse.ArgumentParser:
         p.set_defaults(func=func)
         if name == "evaluate":
             _add_config_args(p)
-            p.add_argument("--data", "-d", help="Paires à évaluer (défaut : data/eval.jsonl du run)")
+            p.add_argument("--data", "-d", help="Paires à évaluer (défaut : data/test.jsonl, sinon data/eval.jsonl du run)")
             p.add_argument("--out", "-o", help="Dossier de sortie")
             p.add_argument("--label", help="Nom affiché dans les rapports")
             p.add_argument("--max-samples", type=int)

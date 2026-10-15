@@ -45,10 +45,18 @@ def _git_commit() -> str | None:
 
 
 def to_examples(pairs: list[Pair], cfg: Config) -> list[dict]:
+    """Format prompt-completion. Les paires au format `messages` gardent leur propre prompt."""
     return [
+        {"prompt": p.prompt, "completion": [{"role": "assistant", "content": p.gherkin}]} if p.prompt else
         build_training_example(p.id, p.specification, p.gherkin, cfg.prompt.system_prompt, cfg.prompt.user_template)
         for p in pairs
     ]
+
+
+def prompt_info(cfg: Config, report: DataReport) -> dict:
+    """Prompt à réutiliser à l'inférence : celui des données s'il existe, sinon celui de la configuration."""
+    return report.prompt_template or {"system_prompt": cfg.prompt.system_prompt,
+                                      "user_template": cfg.prompt.user_template}
 
 
 def token_lengths(examples: list[dict], tokenizer) -> list[int]:
@@ -76,12 +84,16 @@ def prepare_data(cfg: Config, tokenizer, out_dir: Path) -> tuple[list[Pair], lis
     data_dir = out_dir / "data"
     write_jsonl(train, data_dir / "train.jsonl")
     write_jsonl(evals, data_dir / "eval.jsonl")
+    if report.test_pairs:
+        write_jsonl(report.test_pairs, data_dir / "test.jsonl")
     manifest = build_manifest(train, evals, report)
     (data_dir / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
     summary = {
         "train": len(train),
         "train_disponibles": available,
         "eval": len(evals),
+        "test": len(report.test_pairs),
+        "prompt": prompt_info(cfg, report),
         "longueurs_tokens": stats,
         "groupes_train": len(manifest["train_groups"]),
         "groupes_eval": manifest["eval_groups"],
@@ -89,8 +101,8 @@ def prepare_data(cfg: Config, tokenizer, out_dir: Path) -> tuple[list[Pair], lis
     }
     (data_dir / "rapport.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
     log.info(
-        "Données : %d paires d'entraînement, %d d'évaluation (découpage %s) ; rejets : %s ; longueurs : %s",
-        len(train), len(evals), report.split_method, dict(report.dropped) or "aucun", stats,
+        "Données : %d paires d'entraînement, %d d'évaluation, %d de test (découpage %s) ; rejets : %s ; longueurs : %s",
+        len(train), len(evals), len(report.test_pairs), report.split_method, dict(report.dropped) or "aucun", stats,
     )
     if not train:
         raise ValueError("Aucune paire d'entraînement après filtrage : voir data/rapport.json")
@@ -234,8 +246,9 @@ def _train(cfg: Config, out_dir: Path, progress: ProgressWriter) -> tuple[Path, 
 
     progress.phase("préparation des données")
     tokenizer = load_tokenizer(cfg.model.name_or_path, cfg.model.revision)
-    train_pairs, eval_pairs, _ = prepare_data(cfg, tokenizer, out_dir)
-    progress.update(train_pairs=len(train_pairs), eval_pairs=len(eval_pairs))
+    train_pairs, eval_pairs, report = prepare_data(cfg, tokenizer, out_dir)
+    test_pairs = report.test_pairs
+    progress.update(train_pairs=len(train_pairs), eval_pairs=len(eval_pairs), test_pairs=len(test_pairs))
     has_eval = bool(eval_pairs)
     train_ds = Dataset.from_list(to_examples(train_pairs, cfg))
     eval_ds = Dataset.from_list(to_examples(eval_pairs, cfg)) if has_eval else None
@@ -284,12 +297,12 @@ def _train(cfg: Config, out_dir: Path, progress: ProgressWriter) -> tuple[Path, 
     write_run_info(adapter_dir, {
         "base_model": cfg.model.name_or_path,
         "base_revision": cfg.model.revision,
-        "system_prompt": cfg.prompt.system_prompt,
-        "user_template": cfg.prompt.user_template,
+        **prompt_info(cfg, report),
         "expected_language": cfg.data.expected_language,
         "max_length": cfg.data.max_length,
         "train_pairs": len(train_pairs),
         "eval_pairs": len(eval_pairs),
+        "test_pairs": len(test_pairs),
         "best_checkpoint": trainer.state.best_model_checkpoint,
         "stopped_early": stopped,
         "git_commit": _git_commit(),
@@ -302,14 +315,16 @@ def _train(cfg: Config, out_dir: Path, progress: ProgressWriter) -> tuple[Path, 
     (out_dir / "metrics_entrainement.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")
     log.info("Adaptateur enregistré dans %s", adapter_dir)
 
-    if has_eval and cfg.eval.run_after_training and not stopped:
+    # Évaluation finale sur le jeu de test s'il existe (jamais vu), sinon sur le jeu d'évaluation.
+    final_pairs, final_set = (test_pairs, "test") if test_pairs else (eval_pairs, "évaluation")
+    if final_pairs and cfg.eval.run_after_training and not stopped:
         e = cfg.eval
-        eval_subset = eval_pairs[: e.max_samples] if e.max_samples else eval_pairs
-        progress.phase(f"évaluation finale : génération sur {len(eval_subset)} paires")
+        eval_subset = final_pairs[: e.max_samples] if e.max_samples else final_pairs
+        progress.phase(f"évaluation finale : génération sur {len(eval_subset)} paires ({final_set})")
         params = GenerationParams(e.max_new_tokens, e.batch_size, e.do_sample, e.temperature, e.top_p,
                                   e.repetition_penalty)
         final = evaluate_pairs(trainer.model, tokenizer, eval_subset, cfg.prompt.system_prompt,
                                cfg.prompt.user_template, params, cfg.data.expected_language,
-                               out_dir / "eval", label=out_dir.name)
+                               out_dir / "eval", label=f"{out_dir.name} ({final_set})")
         log.info("Évaluation finale : %s", {k: final[k] for k in ("score_qualite", "syntaxe_ok", "tronque")})
     return adapter_dir, stopped

@@ -13,6 +13,7 @@ import glob
 import hashlib
 import json
 import logging
+import os
 import random
 import re
 from collections import Counter
@@ -40,9 +41,16 @@ class Pair:
     split: str | None = None
     source_file: str = ""
     meta: dict = field(default_factory=dict)
+    # Messages system/user fournis par les données (format `messages`) : réutilisés tels quels.
+    prompt: list[dict] | None = None
 
     def to_dict(self) -> dict:
         return asdict(self)
+
+    @property
+    def rule_tag_id(self) -> str | None:
+        """Identifiant à retrouver en tag (`@RG-01`) dans les scénarios, si la référence le porte."""
+        return self.id if re.search(rf"@{re.escape(self.id)}(?![\w-])", self.gherkin) else None
 
 
 @dataclass
@@ -54,6 +62,9 @@ class DataReport:
     group_fallback_to_id: int = 0
     split_method: str = ""
     warnings: list[str] = field(default_factory=list)
+    # Prompt commun déduit des données au format `messages` (pour `generate`) : system_prompt, user_template.
+    prompt_template: dict | None = None
+    test_pairs: list = field(default_factory=list, repr=False)
 
     def drop(self, reason: str, pair_id: str) -> None:
         self.dropped[reason] += 1
@@ -66,6 +77,7 @@ class DataReport:
     def to_dict(self) -> dict:
         d = asdict(self)
         d["dropped"] = dict(self.dropped)
+        d["test"] = len(d.pop("test_pairs"))
         return d
 
 
@@ -123,12 +135,33 @@ def _dedup_key(text: str) -> str:
     return hashlib.sha1(re.sub(r"\s+", " ", text.lower()).strip().encode()).hexdigest()
 
 
+def _from_messages(messages) -> tuple[list[dict], str, str] | None:
+    """Format `messages` : (messages du prompt, contenu du dernier message user, réponse assistant finale)."""
+    if not isinstance(messages, list) or not messages:
+        return None
+    last = messages[-1]
+    if not isinstance(last, dict) or last.get("role") != "assistant" or not isinstance(last.get("content"), str):
+        return None
+    prompt = [{"role": m["role"], "content": m["content"]} for m in messages[:-1]
+              if isinstance(m, dict) and isinstance(m.get("content"), str)]
+    users = [m["content"] for m in prompt if m["role"] == "user"]
+    if not users:
+        return None
+    return prompt, users[-1], last["content"]
+
+
 def _record_to_pair(record: dict, cfg: DataConfig, source: Path, index: int, metadata: dict[str, dict]) -> Pair | None:
     pair_id = _first(record, cfg.fields.get("id"), ID_KEYS) or f"{source.stem}#{index}"
     meta_extra = metadata.get(pair_id, {})
-    merged = {**meta_extra, **{k: v for k, v in record.items() if v not in (None, "")}}
-    spec = _first(merged, cfg.fields.get("specification"), SPEC_KEYS)
-    gherkin = _first(merged, cfg.fields.get("gherkin"), GHERKIN_KEYS)
+    nested = record.get("meta") if isinstance(record.get("meta"), dict) else {}
+    merged = {**meta_extra, **nested, **{k: v for k, v in record.items() if v not in (None, "") and k != "meta"}}
+    prompt = None
+    from_messages = _from_messages(record.get("messages"))
+    if from_messages:
+        prompt, spec, gherkin = from_messages
+    else:
+        spec = _first(merged, cfg.fields.get("specification"), SPEC_KEYS)
+        gherkin = _first(merged, cfg.fields.get("gherkin"), GHERKIN_KEYS)
     if not spec or not gherkin:
         return None
     group = ""
@@ -159,7 +192,41 @@ def _record_to_pair(record: dict, cfg: DataConfig, source: Path, index: int, met
         split=split,
         source_file=str(source),
         meta=meta,
+        prompt=prompt,
     )
+
+
+def _escape_braces(text: str) -> str:
+    return text.replace("{", "{{").replace("}", "}}")
+
+
+def normalize_prompt_specs(pairs: list[Pair], report: DataReport | None = None) -> dict | None:
+    """Pour les paires au format `messages` : isole la spécification dans le message user en retirant le
+    préfixe et le suffixe communs (« Spécification : … Rédige le fichier Gherkin… »), et déduit le prompt
+    à réutiliser à l'inférence. Renvoie {"system_prompt", "user_template"} ou None."""
+    with_prompt = [p for p in pairs if p.prompt]
+    if not with_prompt:
+        return None
+    users = [p.specification for p in with_prompt]
+    prefix = suffix = ""
+    if len(users) >= 2:
+        prefix = os.path.commonprefix(users)
+        prefix = prefix[: prefix.rfind("\n") + 1]  # coupe à une fin de ligne : ne pas mordre sur les spécifications
+        suffix = os.path.commonprefix([u[::-1] for u in users])[::-1]
+        suffix = suffix[suffix.find("\n"):] if "\n" in suffix else ""
+    for p in with_prompt:
+        core = p.specification[len(prefix): len(p.specification) - len(suffix) if suffix else None]
+        p.specification = normalize_text(core) or p.specification
+    systems = Counter(m["content"] for p in with_prompt for m in p.prompt if m["role"] == "system")
+    template = {
+        "system_prompt": systems.most_common(1)[0][0] if systems else "",
+        "user_template": _escape_braces(prefix) + "{specification}" + _escape_braces(suffix),
+    }
+    if report is not None:
+        report.prompt_template = template
+        if len(systems) > 1:
+            report.warn(f"{len(systems)} prompts système différents dans les données : `generate` utilisera le plus fréquent.")
+    return template
 
 
 def load_metadata(patterns: list[str], id_key: str | None = None) -> dict[str, dict]:
@@ -194,7 +261,7 @@ def load_pairs(patterns: list[str], cfg: DataConfig, report: DataReport, forced_
                 if cfg.require_valid_gherkin and not (analysis.syntax_ok and analysis.language_ok):
                     report.drop("gherkin invalide", pair.id)
                     continue
-                if quality_score(analysis, pair.id) < cfg.min_reference_score:
+                if quality_score(analysis, pair.rule_tag_id) < cfg.min_reference_score:
                     report.drop("score de référence trop bas", pair.id)
                     continue
             pairs.append(pair)
@@ -202,8 +269,8 @@ def load_pairs(patterns: list[str], cfg: DataConfig, report: DataReport, forced_
 
 
 def deduplicate(pairs: list[Pair], report: DataReport) -> list[Pair]:
-    """Supprime les spécifications en double. En cas de doublon train/eval, l'exemplaire d'évaluation est gardé."""
-    pairs = sorted(pairs, key=lambda p: (p.split != "eval",))  # les paires d'éval d'abord
+    """Supprime les spécifications en double. En cas de doublon, l'exemplaire de test, puis d'évaluation, est gardé."""
+    pairs = sorted(pairs, key=lambda p: {"test": 0, "eval": 1}.get(p.split, 2))
     seen: set[str] = set()
     kept = []
     for pair in pairs:
@@ -248,7 +315,7 @@ def split_pairs(
         eval_groups = {p.group for p in explicit_eval}
         train = []
         for p in explicit_train + free:
-            if p.group in eval_groups and not p.group.startswith("id:"):
+            if cfg.drop_train_groups_in_eval and p.group in eval_groups and not p.group.startswith("id:"):
                 report.drop("groupe présent dans l'évaluation", p.id)
             else:
                 train.append(p)
@@ -324,6 +391,7 @@ def build_manifest(train: list[Pair], evals: list[Pair], report: DataReport) -> 
         "eval_ids": [p.id for p in evals],
         "train_groups": sorted({p.group for p in train}),
         "eval_groups": sorted({p.group for p in evals}),
+        "test_ids": [p.id for p in report.test_pairs],
     }
 
 
@@ -335,9 +403,15 @@ def load_dataset_splits(cfg: DataConfig, apply_limit: bool = True) -> tuple[list
     pairs = load_pairs(cfg.train_files, cfg, report)
     if cfg.eval_files:
         pairs += load_pairs(cfg.eval_files, cfg, report, forced_split="eval")
+    if cfg.test_files:
+        pairs += load_pairs(cfg.test_files, cfg, report, forced_split="test")
     if not pairs:
         raise ValueError(f"Aucune paire exploitable dans {cfg.train_files} (voir le rapport : {report.to_dict()})")
+    normalize_prompt_specs(pairs, report)
     pairs = deduplicate(pairs, report)
+    # Jeu de test : jamais vu à l'entraînement ni pour choisir le checkpoint, réservé à l'évaluation finale.
+    report.test_pairs = sorted((p for p in pairs if p.split == "test"), key=lambda p: p.id)
+    pairs = [p for p in pairs if p.split != "test"]
     manifest = None
     if cfg.split_manifest:
         manifest = json.loads(Path(cfg.split_manifest).read_text(encoding="utf-8"))

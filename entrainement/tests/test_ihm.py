@@ -60,7 +60,7 @@ def tiny_config(client, model_dir, **training):
     cfg = data["config"]
     cfg["model"]["name_or_path"] = str(model_dir)
     cfg["data"].update(train_files=[str(FIX / "paires.jsonl")], metadata_files=[str(FIX / "regles.jsonl")],
-                       eval_ratio=0.3, max_length=1024)
+                       eval_files=[], test_files=[], eval_ratio=0.3, max_length=1024)
     cfg["training"].update({**dict(max_steps=4, eval_steps=2, logging_steps=1, per_device_train_batch_size=2,
                                    gradient_accumulation_steps=1, learning_rate=1e-3, optim="adamw_torch",
                                    report_to=["none"], dataloader_num_workers=0), **training})
@@ -117,7 +117,7 @@ def test_preview_counts_pairs_and_limit(server):
     status, data = client.request("/api/config")
     cfg = data["config"]
     cfg["data"].update(train_files=[str(FIX / "paires.jsonl")], metadata_files=[str(FIX / "regles.jsonl")],
-                       eval_ratio=0.3, train_limit=3)
+                       eval_files=[], test_files=[], eval_ratio=0.3, train_limit=3)
     status, p = client.request("/api/apercu", {"config": cfg})
     assert status == 200, p
     assert p["lues"] == 6 and p["disponibles_train"] + p["eval"] == 6

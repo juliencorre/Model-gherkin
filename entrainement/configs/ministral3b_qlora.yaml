@@ -13,11 +13,17 @@ lora:
   dropout: 0.05
 
 data:
-  train_files:
-    - data/**/gherkin_fr_*.jsonl
-  metadata_files:
-    - data/**/regles_*.jsonl
+  # Jeu d'affinage du dépôt (format « messages », découpé par l'agent de préparation du corpus).
+  train_files: [data/sft/train.jsonl]
+  eval_files: [data/sft/val.jsonl]     # perte d'évaluation, sonde qualité, choix du meilleur checkpoint
+  test_files: [data/sft/test.jsonl]    # évaluation finale uniquement
+  drop_train_groups_in_eval: false     # les domaines sont larges et partagés par le découpage fourni
+  # Paires pilotes (champs id / specification / gherkin) : train_files: [data/pilote/gherkin_fr_*.jsonl],
+  # eval_files: [], test_files: [], metadata_files: [data/pilote/regles_20.jsonl] et découpage automatique.
+  group_by: [dispositif, domaine, groupe, source]
   eval_ratio: 0.1
+  require_valid_gherkin: true
+  min_reference_score: 0.0
   max_length: 3072
   seed: 42
 

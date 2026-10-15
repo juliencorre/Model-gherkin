@@ -265,6 +265,8 @@ class TrainingJobs:
             "disponibles_train": len(train),
             "utilisees_train": min(limit, len(train)) if limit else len(train),
             "eval": len(evals),
+            "test": len(report.test_pairs),
+            "prompt_des_donnees": report.prompt_template is not None,
             "methode": report.split_method,
             "rejets": dict(report.dropped),
             "avertissements": report.warnings,

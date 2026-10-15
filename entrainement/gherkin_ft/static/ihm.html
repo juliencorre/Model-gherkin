@@ -241,15 +241,21 @@ a { color: var(--accent); }
           </div>
           <label class="f">Part réservée à l'évaluation (%)
             <input type="number" min="0" max="50" step="1" data-k="data.eval_ratio" data-t="pct">
-            <small>Découpage par dispositif, sans fuite.</small>
+            <small>Seulement sans fichiers d'évaluation : découpage par dispositif, sans fuite.</small>
           </label>
           <label class="f">Jeu d'évaluation
             <select id="manifest" data-k="data.split_manifest" data-t="optstr"></select>
             <small>Reprendre celui d'un run permet de comparer des runs.</small>
           </label>
-          <label class="f wide">Fichiers d'évaluation dédiés (optionnel, un par ligne)
+          <label class="f wide">Fichiers d'évaluation (un par ligne ; vide = découpage automatique)
             <textarea rows="1" data-k="data.eval_files" data-t="lines" spellcheck="false"></textarea>
+            <small>Perte d'évaluation, sonde qualité et choix du meilleur checkpoint.</small>
           </label>
+          <label class="f wide">Fichiers de test (évaluation finale, un par ligne)
+            <textarea rows="1" data-k="data.test_files" data-t="lines" spellcheck="false"></textarea>
+            <small>Jamais vus à l'entraînement ni pour choisir le checkpoint.</small>
+          </label>
+          <label class="check wide" style="grid-column: 1 / -1"><input type="checkbox" data-k="data.drop_train_groups_in_eval" data-t="bool"> Retirer de l'entraînement les groupes présents dans l'évaluation (à éviter si les groupes sont des domaines larges)</label>
           <label class="f">Longueur maximale (tokens)
             <input type="number" min="256" step="64" data-k="data.max_length" data-t="int">
             <small>Les paires plus longues sont écartées.</small>
@@ -622,7 +628,8 @@ function updateDerived() {
   const epochs = Number($("[data-k='training.num_train_epochs']").value.replace(",", ".")) || 0;
   const perEpoch = Math.ceil(n / (bs * ga));
   const steps = maxSteps > 0 ? maxSteps : Math.ceil(perEpoch * epochs);
-  est.textContent = `${nf(n)} paires d'entraînement · ${nf(state.preview.eval)} d'évaluation · ` +
+  est.textContent = `${nf(n)} paires d'entraînement · ${nf(state.preview.eval)} d'évaluation` +
+    (state.preview.test ? ` · ${nf(state.preview.test)} de test` : "") + " · " +
     `≈ ${nf(steps)} pas d'optimisation (${nf(perEpoch)} par époque)`;
 }
 
@@ -658,12 +665,14 @@ function renderPreview(p) {
   const box = $("#preview");
   box.replaceChildren();
   const used = usedTrainPairs();
-  box.append(el("div", { class: "big" },
+  box.append(el("div", { class: "big" }, ...[
     el("div", {}, el("b", { text: nf(p.disponibles_train) }), el("span", { text: "disponibles pour l'entraînement" })),
     el("div", {}, el("b", { text: nf(used) }), el("span", { text: "utilisées" })),
     el("div", {}, el("b", { text: nf(p.eval) }), el("span", { text: "pour l'évaluation" })),
+    p.test ? el("div", {}, el("b", { text: nf(p.test) }), el("span", { text: "de test (évaluation finale)" })) : null,
     el("div", {}, el("b", { text: nf(p.lues) }), el("span", { text: `lues dans ${p.fichiers.length} fichier(s)` })),
-  ));
+  ].filter(Boolean)));
+  if (p.prompt_des_donnees) box.append(el("div", { class: "muted", text: "Format « messages » : le prompt système et la consigne des données sont réutilisés tels quels (le prompt système ci-dessous ne sert pas)." }));
   const groups = (title, g) => {
     const names = Object.entries(g);
     if (!names.length) return null;
