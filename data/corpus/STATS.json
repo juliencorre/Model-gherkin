@@ -1,14 +1,20 @@
 {
- "total": 220,
+ "total": 345,
  "rejets": 0,
  "par_niveau": {
-  "A": 6,
-  "B": 180,
-  "D": 34
+  "A": 31,
+  "B": 214,
+  "D": 50,
+  "C": 50
  },
  "par_source": {
   "catala": 105,
-  "publicodes": 115
+  "publicodes": 115,
+  "service_public": 25,
+  "catala_reste": 25,
+  "publicodes_reste": 25,
+  "cdtn": 25,
+  "aides_jeunes": 25
  },
  "par_domaine": {
   "catala/smic": 10,
@@ -20,21 +26,65 @@
   "publicodes/modele-social": 65,
   "publicodes/modele-ti": 25,
   "publicodes/modele-as": 15,
-  "publicodes/modele-commun": 10
+  "publicodes/modele-commun": 10,
+  "service_public/Ressources humaines": 4,
+  "service_public/Papiers - Citoyenneté - Élections": 2,
+  "service_public/Justice": 3,
+  "service_public/Étranger - Europe": 1,
+  "service_public/Étapes de vie": 1,
+  "service_public/Logement": 1,
+  "service_public/Fonctionnement de l'entreprise": 1,
+  "service_public/Social - Santé": 2,
+  "service_public/Transports - Mobilité": 2,
+  "service_public/Baux": 1,
+  "service_public/Environnement": 1,
+  "service_public/Travail - Formation": 4,
+  "service_public/Argent - Impôts - Consommation": 1,
+  "service_public/Famille - Scolarité": 1,
+  "catala_reste/aides_logement": 25,
+  "publicodes_reste/modele-social": 17,
+  "publicodes_reste/modele-as": 6,
+  "publicodes_reste/modele-ti": 1,
+  "publicodes_reste/modele-commun": 1,
+  "cdtn/2596_coiffure": 1,
+  "cdtn/1517_commerces_de_detail_non_alimentaires": 1,
+  "cdtn/1672_societes_assurances": 1,
+  "cdtn/1486_bureaux_etudes_techniques": 3,
+  "cdtn/1527_immobilier": 1,
+  "cdtn/675_habillement_commerce_succursales": 2,
+  "cdtn/1266_restauration_collectivites": 1,
+  "cdtn/1043_gardien_concierge": 2,
+  "cdtn/2609_batiment_etam": 1,
+  "cdtn/1501_restauration_rapide": 1,
+  "cdtn/1606_bricolage": 1,
+  "cdtn/1702_ouvriers_travaux_public": 1,
+  "cdtn/1090_automobiles": 1,
+  "cdtn/573_commerces_de_gros": 2,
+  "cdtn/2098_personnel_presta_service_tertiaire": 1,
+  "cdtn/3043_entreprises_proprete": 1,
+  "cdtn/292_plasturgie": 1,
+  "cdtn/86_publicite_francaise": 1,
+  "cdtn/1404_sedima": 1,
+  "cdtn/3127_entreprises_services_a_la_personne": 1,
+  "aides_jeunes/javascript": 19,
+  "aides_jeunes/openfisca": 6
  },
  "par_licence": {
-  "Apache-2.0": 105,
-  "MIT": 115
+  "Apache-2.0": 130,
+  "MIT": 140,
+  "Licence Ouverte 2.0 (Etalab)": 25,
+  "À clarifier (Apache-2.0 ou MIT)": 25,
+  "AGPL-3.0": 25
  },
- "redistribuables": 220,
- "qualite_A_B_C": 186,
- "entrainables_redistribuables": 186,
+ "redistribuables": 295,
+ "qualite_A_B_C": 295,
+ "entrainables_redistribuables": 245,
  "par_split": {
-  "train": 177,
-  "val": 3,
-  "test": 6,
-  "a_relire": 34
+  "train": 274,
+  "val": 6,
+  "test": 15,
+  "a_relire": 50
  },
- "scenarios_total": 761,
+ "scenarios_total": 1171,
  "motifs_rejet": {}
 }

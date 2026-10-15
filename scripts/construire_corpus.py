@@ -126,7 +126,10 @@ def sorties_non_verifiees(scenarios, base):
                     (nums_out if col in cols_sortie else nums_in).update(valeurs(cell["value"]))
         pool = set(base) | nums_in
         for n in nums_out:
-            if n > 20 and n not in pool and not derivable(n, pool):
+            if n > 20:
+                if n not in pool and not derivable(n, pool):
+                    suspects.add(n)
+            elif n >= 2 and n not in pool:  # petites valeurs (délais, durées, âges) : présence littérale exigée
                 suspects.add(n)
     return sorted(suspects)
 
