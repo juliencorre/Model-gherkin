@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Prépare un échantillon d'audit stratifié par type de source : data/audit_prive/echantillon_<k>.jsonl.
 
-Usage: preparer_audit.py <paires_par_type=12> <paires_par_fichier=24> [graine=1]
+Usage: preparer_audit.py <paires_par_type=12> <paires_par_fichier=24> [graine=1] [fichier d'ids d'unités admis]
 Chaque ligne : id de paire, type, texte source (+ code), spécification, gherkin, notes. L'échantillon est
 indépendant du filtrage des niveaux : toutes les paires (A, B, C, D) peuvent être tirées.
 """
@@ -12,6 +12,7 @@ from pathlib import Path
 racine = Path(__file__).resolve().parents[1]
 n_type, n_fichier = int(sys.argv[1]), int(sys.argv[2])
 graine = int(sys.argv[3]) if len(sys.argv) > 3 else 1
+autorises = set(open(sys.argv[4]).read().split()) if len(sys.argv) > 4 else None  # ids d'unités admis (ex: vague récente)
 dossier = racine / "data/audit_prive"
 dossier.mkdir(parents=True, exist_ok=True)
 vus = set()
@@ -26,7 +27,7 @@ par_type = defaultdict(list)
 for k in ("train", "val", "test", "a_relire"):
     for l in open(racine / f"data/corpus_prive/{k}.jsonl", encoding="utf-8"):
         p = json.loads(l)
-        if p["id"] not in vus:
+        if p["id"] not in vus and (autorises is None or p["id"].split("-", 1)[1] in autorises):
             par_type[p["source_type"]].append(p)
 rng = random.Random(graine)
 choix = []
