@@ -43,5 +43,30 @@
    "style": 3.71
   }
  },
- "lecture": "v1 = consignes initiales (pilote, lot2, calibration) ; v2 = consignes avec défauts à éviter et relecture obligatoire (vague 1, service_public_2, legi_2). Les paires v2 auditées couvrent catala_reste, publicodes_reste, service_public, service_public_2 et legi_2."
+ "lecture": "v1 = consignes initiales (pilote, lot2, calibration) ; v2 = consignes avec défauts à éviter et relecture obligatoire (vague 1, service_public_2, legi_2). Les paires v2 auditées couvrent catala_reste, publicodes_reste, service_public, service_public_2 et legi_2.",
+ "comparaison_haiku_sonnet": {
+  "date": "2026-10-15",
+  "methode": "12 règles de service-public, mêmes sources, deux rédactions (Sonnet, Haiku) mélangées sous étiquettes anonymes, auditées par Opus sans connaître le modèle",
+  "sonnet": {
+   "paires": 12,
+   "bon": 12,
+   "mineur": 0,
+   "majeur": 0,
+   "fidelite_gherkin": 4.83,
+   "francais": 4.92
+  },
+  "haiku": {
+   "paires": 12,
+   "bon": 7,
+   "mineur": 4,
+   "majeur": 1,
+   "fidelite_gherkin": 4.08,
+   "francais": 4.0
+  },
+  "jetons_par_lot_de_25": {
+   "sonnet": 115349,
+   "haiku": 196554
+  },
+  "conclusion": "Haiku n'est meilleur sur aucune des 12 règles, moins bon sur la fidélité et le français, et plus coûteux en jetons (deuxième essai concordant). Sonnet conservé pour la génération. Échantillon petit."
+ }
 }
