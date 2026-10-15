@@ -1,0 +1,70 @@
+{
+  "Identifier": "RR-EU-0001",
+  "Type": "Acceptance",
+  "Country": "EU",
+  "Version": "1.0.0",
+  "SchemaVersion": "1.0.0",
+  "Engine": "CERTLOGIC",
+  "EngineVersion": "0.7.5",
+  "CertificateType": "Recovery",
+  "Description": [
+    {
+      "lang": "en",
+      "desc": "The Verification Datetime must be between \"Certificate Valid From\" and \"Certificate Valid Until\"."
+    },
+    {
+      "lang": "de",
+      "desc": "Das Verifizierungsdatum darf nur zwischen \"Certificate Valid From\" und \"Certificate Valid Until\" liegen."
+    },
+    {
+      "lang": "bg",
+      "desc": "Датата на валидиране трябва да е между \"Certificate Valid From\" и \"Certificate Valid Until\"."
+    }
+  ],
+  "ValidFrom": "2021-06-01T00:00:00Z",
+  "ValidTo": "2030-06-01T00:00:00Z",
+  "AffectedFields": [
+    "r.0",
+    "r.0.df",
+    "r.0.du"
+  ],
+  "Logic": {
+    "if": [
+      {
+        "var": "payload.r.0"
+      },
+      {
+        "not-after": [
+          {
+            "plusTime": [
+              {
+                "var": "payload.r.0.df"
+              },
+              0,
+              "day"
+            ]
+          },
+          {
+            "plusTime": [
+              {
+                "var": "external.validationClock"
+              },
+              0,
+              "day"
+            ]
+          },
+          {
+            "plusTime": [
+              {
+                "var": "payload.r.0.du"
+              },
+              0,
+              "day"
+            ]
+          }
+        ]
+      },
+      true
+    ]
+  }
+}

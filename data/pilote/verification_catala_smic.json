@@ -1,0 +1,709 @@
+{
+ "conformes": 78,
+ "ecarts": 0,
+ "ignores": 0,
+ "detail": [
+  {
+   "id": "RG-01",
+   "scenario": "Montant du SMIC pour une résidence du premier groupe",
+   "date": "2019-07-02",
+   "residence": "Métropole",
+   "attendu": "10,03",
+   "catala": "10,03 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-01",
+   "scenario": "Montant du SMIC pour une résidence du premier groupe",
+   "date": "2019-07-02",
+   "residence": "Guadeloupe",
+   "attendu": "10,03",
+   "catala": "10,03 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-01",
+   "scenario": "Montant du SMIC pour une résidence du premier groupe",
+   "date": "2019-07-02",
+   "residence": "Guyane",
+   "attendu": "10,03",
+   "catala": "10,03 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-01",
+   "scenario": "Montant du SMIC pour une résidence du premier groupe",
+   "date": "2019-07-02",
+   "residence": "Martinique",
+   "attendu": "10,03",
+   "catala": "10,03 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-01",
+   "scenario": "Montant du SMIC pour une résidence du premier groupe",
+   "date": "2019-07-02",
+   "residence": "LaRéunion",
+   "attendu": "10,03",
+   "catala": "10,03 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-01",
+   "scenario": "Montant du SMIC pour une résidence du premier groupe",
+   "date": "2019-07-02",
+   "residence": "SaintBarthélemy",
+   "attendu": "10,03",
+   "catala": "10,03 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-01",
+   "scenario": "Montant du SMIC pour une résidence du premier groupe",
+   "date": "2019-07-02",
+   "residence": "SaintMartin",
+   "attendu": "10,03",
+   "catala": "10,03 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-01",
+   "scenario": "Montant du SMIC pour une résidence du premier groupe",
+   "date": "2019-07-02",
+   "residence": "SaintPierreEtMiquelon",
+   "attendu": "10,03",
+   "catala": "10,03 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-01",
+   "scenario": "Montant du SMIC pour un travailleur résidant à Mayotte",
+   "date": "2019-07-02",
+   "residence": "Mayotte",
+   "attendu": "7,57",
+   "catala": "7,57 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-01",
+   "scenario": "Bornes de la période d'application, résidence métropolitaine",
+   "date": "2019-01-01",
+   "residence": "Métropole",
+   "attendu": "10,03",
+   "catala": "10,03 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-01",
+   "scenario": "Bornes de la période d'application, résidence métropolitaine",
+   "date": "2019-12-31",
+   "residence": "Métropole",
+   "attendu": "10,03",
+   "catala": "10,03 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-01",
+   "scenario": "Bornes de la période d'application, résidence à Mayotte",
+   "date": "2019-01-01",
+   "residence": "Mayotte",
+   "attendu": "7,57",
+   "catala": "7,57 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-01",
+   "scenario": "Bornes de la période d'application, résidence à Mayotte",
+   "date": "2019-12-31",
+   "residence": "Mayotte",
+   "attendu": "7,57",
+   "catala": "7,57 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-02",
+   "scenario": "Montant du SMIC pour une résidence du premier groupe",
+   "date": "2020-07-01",
+   "residence": "Métropole",
+   "attendu": "10,15",
+   "catala": "10,15 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-02",
+   "scenario": "Montant du SMIC pour une résidence du premier groupe",
+   "date": "2020-07-01",
+   "residence": "Guadeloupe",
+   "attendu": "10,15",
+   "catala": "10,15 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-02",
+   "scenario": "Montant du SMIC pour une résidence du premier groupe",
+   "date": "2020-07-01",
+   "residence": "Guyane",
+   "attendu": "10,15",
+   "catala": "10,15 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-02",
+   "scenario": "Montant du SMIC pour une résidence du premier groupe",
+   "date": "2020-07-01",
+   "residence": "Martinique",
+   "attendu": "10,15",
+   "catala": "10,15 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-02",
+   "scenario": "Montant du SMIC pour une résidence du premier groupe",
+   "date": "2020-07-01",
+   "residence": "LaRéunion",
+   "attendu": "10,15",
+   "catala": "10,15 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-02",
+   "scenario": "Montant du SMIC pour une résidence du premier groupe",
+   "date": "2020-07-01",
+   "residence": "SaintBarthélemy",
+   "attendu": "10,15",
+   "catala": "10,15 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-02",
+   "scenario": "Montant du SMIC pour une résidence du premier groupe",
+   "date": "2020-07-01",
+   "residence": "SaintMartin",
+   "attendu": "10,15",
+   "catala": "10,15 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-02",
+   "scenario": "Montant du SMIC pour une résidence du premier groupe",
+   "date": "2020-07-01",
+   "residence": "SaintPierreEtMiquelon",
+   "attendu": "10,15",
+   "catala": "10,15 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-02",
+   "scenario": "Montant du SMIC pour un travailleur résidant à Mayotte",
+   "date": "2020-07-01",
+   "residence": "Mayotte",
+   "attendu": "7,66",
+   "catala": "7,66 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-02",
+   "scenario": "Bornes de la période d'application, résidence métropolitaine",
+   "date": "2020-01-01",
+   "residence": "Métropole",
+   "attendu": "10,15",
+   "catala": "10,15 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-02",
+   "scenario": "Bornes de la période d'application, résidence métropolitaine",
+   "date": "2020-12-31",
+   "residence": "Métropole",
+   "attendu": "10,15",
+   "catala": "10,15 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-02",
+   "scenario": "Bornes de la période d'application, résidence à Mayotte",
+   "date": "2020-01-01",
+   "residence": "Mayotte",
+   "attendu": "7,66",
+   "catala": "7,66 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-02",
+   "scenario": "Bornes de la période d'application, résidence à Mayotte",
+   "date": "2020-12-31",
+   "residence": "Mayotte",
+   "attendu": "7,66",
+   "catala": "7,66 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-03",
+   "scenario": "Montant du SMIC pour une résidence du premier groupe",
+   "date": "2021-07-02",
+   "residence": "Métropole",
+   "attendu": "10,25",
+   "catala": "10,25 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-03",
+   "scenario": "Montant du SMIC pour une résidence du premier groupe",
+   "date": "2021-07-02",
+   "residence": "Guadeloupe",
+   "attendu": "10,25",
+   "catala": "10,25 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-03",
+   "scenario": "Montant du SMIC pour une résidence du premier groupe",
+   "date": "2021-07-02",
+   "residence": "Guyane",
+   "attendu": "10,25",
+   "catala": "10,25 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-03",
+   "scenario": "Montant du SMIC pour une résidence du premier groupe",
+   "date": "2021-07-02",
+   "residence": "Martinique",
+   "attendu": "10,25",
+   "catala": "10,25 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-03",
+   "scenario": "Montant du SMIC pour une résidence du premier groupe",
+   "date": "2021-07-02",
+   "residence": "LaRéunion",
+   "attendu": "10,25",
+   "catala": "10,25 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-03",
+   "scenario": "Montant du SMIC pour une résidence du premier groupe",
+   "date": "2021-07-02",
+   "residence": "SaintBarthélemy",
+   "attendu": "10,25",
+   "catala": "10,25 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-03",
+   "scenario": "Montant du SMIC pour une résidence du premier groupe",
+   "date": "2021-07-02",
+   "residence": "SaintMartin",
+   "attendu": "10,25",
+   "catala": "10,25 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-03",
+   "scenario": "Montant du SMIC pour une résidence du premier groupe",
+   "date": "2021-07-02",
+   "residence": "SaintPierreEtMiquelon",
+   "attendu": "10,25",
+   "catala": "10,25 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-03",
+   "scenario": "Montant du SMIC pour un travailleur résidant à Mayotte",
+   "date": "2021-07-02",
+   "residence": "Mayotte",
+   "attendu": "7,74",
+   "catala": "7,74 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-03",
+   "scenario": "Bornes de la période d'application, résidence métropolitaine",
+   "date": "2021-01-01",
+   "residence": "Métropole",
+   "attendu": "10,25",
+   "catala": "10,25 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-03",
+   "scenario": "Bornes de la période d'application, résidence métropolitaine",
+   "date": "2021-12-31",
+   "residence": "Métropole",
+   "attendu": "10,25",
+   "catala": "10,25 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-03",
+   "scenario": "Bornes de la période d'application, résidence à Mayotte",
+   "date": "2021-01-01",
+   "residence": "Mayotte",
+   "attendu": "7,74",
+   "catala": "7,74 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-03",
+   "scenario": "Bornes de la période d'application, résidence à Mayotte",
+   "date": "2021-12-31",
+   "residence": "Mayotte",
+   "attendu": "7,74",
+   "catala": "7,74 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-04",
+   "scenario": "Montant du SMIC pour une résidence du premier groupe",
+   "date": "2022-03-01",
+   "residence": "Métropole",
+   "attendu": "10,57",
+   "catala": "10,57 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-04",
+   "scenario": "Montant du SMIC pour une résidence du premier groupe",
+   "date": "2022-03-01",
+   "residence": "Guadeloupe",
+   "attendu": "10,57",
+   "catala": "10,57 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-04",
+   "scenario": "Montant du SMIC pour une résidence du premier groupe",
+   "date": "2022-03-01",
+   "residence": "Guyane",
+   "attendu": "10,57",
+   "catala": "10,57 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-04",
+   "scenario": "Montant du SMIC pour une résidence du premier groupe",
+   "date": "2022-03-01",
+   "residence": "Martinique",
+   "attendu": "10,57",
+   "catala": "10,57 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-04",
+   "scenario": "Montant du SMIC pour une résidence du premier groupe",
+   "date": "2022-03-01",
+   "residence": "LaRéunion",
+   "attendu": "10,57",
+   "catala": "10,57 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-04",
+   "scenario": "Montant du SMIC pour une résidence du premier groupe",
+   "date": "2022-03-01",
+   "residence": "SaintBarthélemy",
+   "attendu": "10,57",
+   "catala": "10,57 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-04",
+   "scenario": "Montant du SMIC pour une résidence du premier groupe",
+   "date": "2022-03-01",
+   "residence": "SaintMartin",
+   "attendu": "10,57",
+   "catala": "10,57 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-04",
+   "scenario": "Montant du SMIC pour une résidence du premier groupe",
+   "date": "2022-03-01",
+   "residence": "SaintPierreEtMiquelon",
+   "attendu": "10,57",
+   "catala": "10,57 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-04",
+   "scenario": "Montant du SMIC pour un travailleur résidant à Mayotte",
+   "date": "2022-03-01",
+   "residence": "Mayotte",
+   "attendu": "7,98",
+   "catala": "7,98 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-04",
+   "scenario": "Bornes de la période d'application, résidence métropolitaine",
+   "date": "2022-01-01",
+   "residence": "Métropole",
+   "attendu": "10,57",
+   "catala": "10,57 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-04",
+   "scenario": "Bornes de la période d'application, résidence métropolitaine",
+   "date": "2022-04-30",
+   "residence": "Métropole",
+   "attendu": "10,57",
+   "catala": "10,57 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-04",
+   "scenario": "Bornes de la période d'application, résidence à Mayotte",
+   "date": "2022-01-01",
+   "residence": "Mayotte",
+   "attendu": "7,98",
+   "catala": "7,98 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-04",
+   "scenario": "Bornes de la période d'application, résidence à Mayotte",
+   "date": "2022-04-30",
+   "residence": "Mayotte",
+   "attendu": "7,98",
+   "catala": "7,98 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-05",
+   "scenario": "Montant du SMIC pour une résidence du premier groupe",
+   "date": "2022-06-15",
+   "residence": "Métropole",
+   "attendu": "10,85",
+   "catala": "10,85 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-05",
+   "scenario": "Montant du SMIC pour une résidence du premier groupe",
+   "date": "2022-06-15",
+   "residence": "Guadeloupe",
+   "attendu": "10,85",
+   "catala": "10,85 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-05",
+   "scenario": "Montant du SMIC pour une résidence du premier groupe",
+   "date": "2022-06-15",
+   "residence": "Guyane",
+   "attendu": "10,85",
+   "catala": "10,85 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-05",
+   "scenario": "Montant du SMIC pour une résidence du premier groupe",
+   "date": "2022-06-15",
+   "residence": "Martinique",
+   "attendu": "10,85",
+   "catala": "10,85 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-05",
+   "scenario": "Montant du SMIC pour une résidence du premier groupe",
+   "date": "2022-06-15",
+   "residence": "LaRéunion",
+   "attendu": "10,85",
+   "catala": "10,85 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-05",
+   "scenario": "Montant du SMIC pour une résidence du premier groupe",
+   "date": "2022-06-15",
+   "residence": "SaintBarthélemy",
+   "attendu": "10,85",
+   "catala": "10,85 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-05",
+   "scenario": "Montant du SMIC pour une résidence du premier groupe",
+   "date": "2022-06-15",
+   "residence": "SaintMartin",
+   "attendu": "10,85",
+   "catala": "10,85 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-05",
+   "scenario": "Montant du SMIC pour une résidence du premier groupe",
+   "date": "2022-06-15",
+   "residence": "SaintPierreEtMiquelon",
+   "attendu": "10,85",
+   "catala": "10,85 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-05",
+   "scenario": "Montant du SMIC pour un travailleur résidant à Mayotte",
+   "date": "2022-06-15",
+   "residence": "Mayotte",
+   "attendu": "8,19",
+   "catala": "8,19 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-05",
+   "scenario": "Bornes de la période d'application, résidence métropolitaine",
+   "date": "2022-05-01",
+   "residence": "Métropole",
+   "attendu": "10,85",
+   "catala": "10,85 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-05",
+   "scenario": "Bornes de la période d'application, résidence métropolitaine",
+   "date": "2022-07-31",
+   "residence": "Métropole",
+   "attendu": "10,85",
+   "catala": "10,85 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-05",
+   "scenario": "Bornes de la période d'application, résidence à Mayotte",
+   "date": "2022-05-01",
+   "residence": "Mayotte",
+   "attendu": "8,19",
+   "catala": "8,19 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-05",
+   "scenario": "Bornes de la période d'application, résidence à Mayotte",
+   "date": "2022-07-31",
+   "residence": "Mayotte",
+   "attendu": "8,19",
+   "catala": "8,19 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-06",
+   "scenario": "SMIC brut horaire applicable hors Mayotte",
+   "date": "2022-10-15",
+   "residence": "Métropole",
+   "attendu": "11,07",
+   "catala": "11,07 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-06",
+   "scenario": "SMIC brut horaire applicable hors Mayotte",
+   "date": "2022-10-15",
+   "residence": "Guadeloupe",
+   "attendu": "11,07",
+   "catala": "11,07 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-06",
+   "scenario": "SMIC brut horaire applicable hors Mayotte",
+   "date": "2022-10-15",
+   "residence": "Guyane",
+   "attendu": "11,07",
+   "catala": "11,07 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-06",
+   "scenario": "SMIC brut horaire applicable hors Mayotte",
+   "date": "2022-10-15",
+   "residence": "Martinique",
+   "attendu": "11,07",
+   "catala": "11,07 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-06",
+   "scenario": "SMIC brut horaire applicable hors Mayotte",
+   "date": "2022-10-15",
+   "residence": "LaRéunion",
+   "attendu": "11,07",
+   "catala": "11,07 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-06",
+   "scenario": "SMIC brut horaire applicable hors Mayotte",
+   "date": "2022-10-15",
+   "residence": "SaintBarthélemy",
+   "attendu": "11,07",
+   "catala": "11,07 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-06",
+   "scenario": "SMIC brut horaire applicable hors Mayotte",
+   "date": "2022-10-15",
+   "residence": "SaintMartin",
+   "attendu": "11,07",
+   "catala": "11,07 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-06",
+   "scenario": "SMIC brut horaire applicable hors Mayotte",
+   "date": "2022-10-15",
+   "residence": "SaintPierreEtMiquelon",
+   "attendu": "11,07",
+   "catala": "11,07 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-06",
+   "scenario": "SMIC brut horaire applicable à Mayotte",
+   "date": "2022-10-15",
+   "residence": "Mayotte",
+   "attendu": "8,35",
+   "catala": "8,35 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-06",
+   "scenario": "Bornes de la période d'application",
+   "date": "2022-08-01",
+   "residence": "Métropole",
+   "attendu": "11,07",
+   "catala": "11,07 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-06",
+   "scenario": "Bornes de la période d'application",
+   "date": "2022-12-31",
+   "residence": "Métropole",
+   "attendu": "11,07",
+   "catala": "11,07 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-06",
+   "scenario": "Bornes de la période d'application",
+   "date": "2022-08-01",
+   "residence": "Mayotte",
+   "attendu": "8,35",
+   "catala": "8,35 €",
+   "conforme": true
+  },
+  {
+   "id": "RG-06",
+   "scenario": "Bornes de la période d'application",
+   "date": "2022-12-31",
+   "residence": "Mayotte",
+   "attendu": "8,35",
+   "catala": "8,35 €",
+   "conforme": true
+  }
+ ]
+}

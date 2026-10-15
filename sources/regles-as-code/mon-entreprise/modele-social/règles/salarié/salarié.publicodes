@@ -1,0 +1,602 @@
+salarié:
+  icônes: 🤝
+  valeur: oui
+
+salarié . ancienneté:
+  description: |
+    L'ancienneté est le nombre d'années de présence dans l'entreprise. Elle est calculée à partir de la date d'embauche.
+  somme:
+    - durée:
+        depuis: contrat . date d'embauche
+        jusqu'à: date
+    - 1 jour # Le mécanisme durée n'inclue pas le dernier jour
+
+salarié . convention collective:
+  experimental: oui
+  par défaut: "'droit commun'"
+  question: Quelle convention collective est applicable à l'entreprise ?
+  une possibilité:
+    - HCR
+    - BTP
+    - sport
+    - SVP
+    - compta
+    - optique
+    - autre
+    - droit commun
+
+  avec:
+    avertissement convention collective:
+      type: notification
+      sévérité: avertissement
+      valeur:
+        toutes ces conditions:
+          - convention collective != 'droit commun'
+          - convention collective != 'autre'
+      description: >-
+        Attention : la prise en charge des conventions collectives est encore
+        partielle et non vérifiée. Néanmoins, cela permet d'obtenir une première
+        estimation, plus précise que le régime général.
+    avertissement autre convention collective:
+      type: notification
+      sévérité: avertissement
+      valeur:
+        convention collective = 'autre'
+      description: >-
+        Attention : votre convention collective n'est pas prise en charge,
+        la simulation se basera sur le droit commun.
+
+salarié . régimes spécifiques:
+
+salarié . régimes spécifiques . alsace moselle:
+  titre: Régime Alsace-Moselle
+  description: |
+    Nous considérons qu'un salarié est affilié au régime Alsace-Moselle quand l'établissement dans lequel il travaille est situé dans ces départements.
+
+    Attention : c'est une **simplification** : l'affiliation est plus compliquée que celà, voir les conditions exactes [sur le site du régime](https://regime-local.fr/affiliation/).
+  par défaut: non
+  une de ces conditions:
+    - établissement . commune . département = 'Bas-Rhin'
+    - établissement . commune . département = 'Haut-Rhin'
+    - établissement . commune . département = 'Moselle'
+
+salarié . régimes spécifiques . alsace moselle . ATMP:
+  avec:
+    seuil taux mixte ou individuel:
+      remplace: cotisations . ATMP . seuil taux mixte ou individuel
+      valeur: 50 employé
+
+    taux fonctions support:
+      références:
+        Annexe de l'Arrêté du 24 décembre 2021 Relatif à la tarification des risques d'accidents du travail et de maladies professionnelles pour l'année 2022: https://www.legifrance.gouv.fr/jorf/article_jo/JORFARTI000044616039
+      remplace: cotisations . ATMP . taux fonctions support . montant
+      valeur: 0.86%
+
+salarié . régimes spécifiques . impatriés:
+  question: Le salarié bénéficie-t-il du régime des impatriés ?
+  non applicable si: situation personnelle . domiciliation fiscale à l'étranger
+  par défaut: non
+  description: |
+    Si vous êtes salarié ou dirigeant fiscalement assimilé, et si vous avez été appelé par une entreprise étrangère à occuper un emploi dans une entreprise établie en France ayant un lien avec la première ou si vous avez été directement recruté à l’étranger par une entreprise établie en France, vous pouvez bénéficier du régime spécifiques des impatriés.
+
+    Vous devez en outre ne pas avoir été fiscalement domicilié en France les cinq années civiles précédant celle de la prise de fonctions et fixer en France votre domicile fiscal dès votre prise de fonctions.
+
+    Les impatriés sont exonérés de cotisations retraite (régime de base et complémentaire) à condition de justifier d'une contribution minimale versée par ailleurs (par exemple dans une caisse de retraite ou un fond de pension étranger). Ils n’acquièrent aucun droit pendant la durée d’exonération.
+
+  note: La durée d’application est fixée au maximum jusqu’au 31 décembre de la
+    huitième année civile suivant la prise de fonctions dans l’entreprise
+    d’accueil.
+  rend non applicable:
+    - cotisations . vieillesse
+    - cotisations . retraite complémentaire
+  références:
+    impots.gouv.fr: https://www.impots.gouv.fr/portail/particulier/questions/puis-je-beneficier-du-regime-des-impatries
+    bofip: http://bofip.impots.gouv.fr/bofip/5694-PGP
+    Article 155B du Code général des impôts: https://www.legifrance.gouv.fr/affichCodeArticle.do?cidTexte=LEGITEXT000006069577&idArticle=LEGIARTI000006307476&dateTexte=&categorieLien=cid
+
+  avec:
+    information:
+      type: notification
+      description: |-
+        Pour bénéficier de l'exonération de cotisations vieillesse, il faut remplir les conditions suivantes :
+        - Pouvoir justifier d'une contribution minimale versée ailleurs pour une assurance vieillesse
+        - Ne pas avoir été affilié, au cours des cinq années civiles précédant celle de la prise de fonctions, à un régime français obligatoire d'assurance vieillesse, sauf pour des activités accessoires, de caractère saisonnier ou pour les études.
+
+        [Lire le texte de loi](https://www.legifrance.gouv.fr/codes/id/LEGISCTA000038510929)
+
+salarié . régimes spécifiques . DFS:
+  titre: déduction forfaitaire spécifique
+  acronyme: DFS
+  description: >-
+    Pour une liste précise de professions, l'employeur peut pratiquer une
+    déduction forfaitaire spécifique (DFS) pour frais professionnels sur la base
+    de calcul des cotisations sociales. La DFS consiste en un abattement sur
+    l'assiette des cotisations sociales. Elle peut s'appliquer si le salarié
+    supporte effectivement des frais lors de son activité professionnelle.
+
+    En l’absence de frais effectivement engagés, ou si l’employeur prend en charge
+    ou rembourse la totalité des frais professionnels, il est impossible d’appliquer la DFS.
+  question: Le salarié bénéficie-t-il d'une déduction forfaitaire spécifique ?
+  par défaut: non
+  références:
+    Fiche Urssaf.fr: https://www.urssaf.fr/accueil/employeur/beneficier-exonerations/frais-professionnels.html#ancre-deduction-forfaitaire-specifique
+
+  avec:
+    assiette minimale:
+      valeur: rémunération . assiette de vérification du SMIC
+      contexte:
+        contrat . salaire brut: SMIC . horaire * temps de travail . effectif
+
+    cotisations assiette:
+      valeur: cotisations . assiette
+      abattement:
+        valeur: taux * cotisations . assiette
+        plafond: 7600 €/an
+      plancher: assiette minimale
+      remplace:
+        références à: cotisations . assiette
+        sauf dans: salarié . cotisations . CSG-CRDS
+
+    taux:
+      variations:
+        - si:
+            une de ces conditions:
+              - profession = 'journaliste'
+              - profession = 'pilote de ligne ou personnel navigant'
+              - profession = 'voyageur, représentant et placier'
+          alors:
+            variations:
+              - si: date >= 01/2038
+                alors: 0%
+              - si: date >= 01/2037
+                alors: 2%
+              - si: date >= 01/2036
+                alors: 4%
+              - si: date >= 01/2035
+                alors: 6%
+              - si: date >= 01/2034
+                alors: 8%
+              - si: date >= 01/2033
+                alors: 10%
+              - si: date >= 01/2032
+                alors: 12%
+              - si: date >= 01/2031
+                alors: 14%
+              - si: date >= 01/2030
+                alors: 16%
+              - si: date >= 01/2029
+                alors: 18%
+              - si: date >= 01/2028
+                alors: 20%
+              - si: date >= 01/2027
+                alors: 22%
+              - si: date >= 01/2026
+                alors: 24%
+              - si: date >= 01/2025
+                alors: 26%
+              - si: date >= 01/2024
+                alors: 28%
+              - sinon: 30%
+        - si: profession = 'ouvrier du bâtiment'
+          alors:
+            variations:
+              - si: date >= 01/2032
+                alors: 0%
+              - si: date >= 01/2031
+                alors: 1.5%
+              - si: date >= 01/2030
+                alors: 3%
+              - si: date >= 01/2029
+                alors: 4%
+              - si: date >= 01/2028
+                alors: 5%
+              - si: date >= 01/2027
+                alors: 6%
+              - si: date >= 01/2026
+                alors: 7%
+              - si: date >= 01/2025
+                alors: 8%
+              - si: date >= 01/2024
+                alors: 9%
+              - sinon: 10%
+        - si: profession = 'artiste musicien'
+          alors:
+            variations:
+              - si: date >= 01/2032
+                alors: 0%
+              - si: date >= 01/2031
+                alors: 3%
+              - si: date >= 01/2030
+                alors: 6%
+              - si: date >= 01/2029
+                alors: 9%
+              - si: date >= 01/2028
+                alors: 12%
+              - si: date >= 01/2027
+                alors: 14%
+              - si: date >= 01/2026
+                alors: 16%
+              - si: date >= 01/2025
+                alors: 18%
+              - si: date >= 01/2024
+                alors: 19%
+              - sinon: 20%
+        - si: profession = 'artiste dramatique'
+          alors:
+            variations:
+            - si: date >= 01/2032
+              alors: 0%
+            - si: date >= 01/2031
+              alors: 3%
+            - si: date >= 01/2030
+              alors: 6%
+            - si: date >= 01/2029
+              alors: 9%
+            - si: date >= 01/2028
+              alors: 12%
+            - si: date >= 01/2027
+              alors: 15%
+            - si: date >= 01/2026
+              alors: 18%
+            - si: date >= 01/2025
+              alors: 21%
+            - si: date >= 01/2024
+              alors: 23%
+            - sinon: 25%
+        - sinon: 0%
+      par défaut: 10%
+      références:
+        Liste des professions bénéficiaires de la DFS: https://boss.gouv.fr/portail/accueil/autres-elements-de-remuneration/frais-professionnels.html#titre-annexe--liste-des-professions-be
+        Modalités de réduction progressive du taux d'abattement de DFS: https://boss.gouv.fr/portail/accueil/autres-elements-de-remuneration/frais-professionnels.html#titre-chapitre-9---deduction-forfaitai-section-3--regles-specifiques-au-a-modalites-de-reduction-progres
+
+salarié . régimes spécifiques . DFS . profession:
+  question:
+    Quelle est la profession du salarié pour l'application de la déduction
+    forfaitaire spécifique ?
+  une possibilité:
+    - journaliste
+    - ouvrier du bâtiment
+    - artiste musicien
+    - artiste dramatique
+    - pilote de ligne ou personnel navigant
+    - voyageur, représentant et placier
+
+  avec:
+    artiste dramatique:
+      icônes: 🎭
+      description: >-
+        Concerne les artistes dramatiques, lyriques, cinématographiques ou
+        chorégraphiques.
+
+    artiste musicien:
+      icônes: 🎼
+      description: >-
+        Concerne les artistes musiciens, les choristes, les chefs d’orchestre et
+        les régisseurs de théâtre.
+
+    journaliste:
+      icônes: ✒
+      description: >-
+        Concerne les journalistes, rédacteurs, photographes, directeurs de
+        journaux, critiques dramatiques et musicaux.
+
+    ouvrier du bâtiment:
+      icônes: 👷‍♂️
+      description: >-
+        Concerne les ouvriers du bâtiment visés aux paragraphes 1er et 2 de
+        l’article 1er du décret du 17 novembre 1936, à l’exclusion de ceux qui
+        travaillent en usine ou en atelier.
+
+    pilote de ligne ou personnel navigant:
+      icônes: ✈
+      description: >-
+        Concerne les pilotes, radios, mécaniciens navigants des compagnies de
+        transports aériens ; pilotes et mécaniciens employés par les maisons de
+        construction d’avions et de moteurs pour l’essai de prototypes ; pilotes
+        moniteurs d’aéro-clubs et des écoles d’aviation civile.
+
+    voyageur, représentant et placier:
+      icônes: 💼
+      description: >-
+        Concerne les voyageurs, représentants et placiers de commerce ou d'industrie.
+
+salarié . régimes spécifiques . DFS . profession . journaliste . abattement fiscal:
+  remplace: rémunération . net . imposable
+  titre: net imposable journaliste
+  références:
+    Rémunération imposable des journalistes: https://bofip.impots.gouv.fr/bofip/1324-PGP.html/identifiant%3DBOI-RSA-CHAMP-20-50-10-30-20200728#Assimilation_partielle_de_l_33
+  formule:
+    valeur: rémunération . net . imposable
+    abattement:
+      variations:
+        # TODO: appliquer un prorata pour les années incomplètes :
+        # https://bofip.impots.gouv.fr/bofip/1324-PGP.html/identifiant%3DBOI-RSA-CHAMP-20-50-10-30-20200728#2%C2%B0_Condition_de_revenu_a_re_53
+        # En cas d'année d'activité incomplète (début ou fin d'activité en cours d'année),
+        # le seuil de 93 510 € est ajusté prorata temporis en fonction du nombre de mois travaillés,
+        # chaque mois au cours duquel l'activité a été pratiquée étant compté pour un.
+        - si: rémunération . brut < 93510 €/an
+          alors: 7650 €/an
+        - sinon: 0 €/an
+    plancher: 0 €/an
+
+salarié . régimes spécifiques . taux réduits:
+  titre: taux réduits cas particuliers
+  description: |
+    L’emploi de certaines professions donne lieu au paiement des cotisations de
+    Sécurité sociale à taux réduits. Sont notamment concernés :
+    - les artistes du spectacle,
+    - les mannequins,
+    - les journalistes professionnels et les pigistes,
+    - les professions médicales salariées.
+  question: Le salarié bénéficie-t-il de taux de cotisations réduits ?
+  par défaut: non
+  références:
+    Les taux réduits cas particuliers: https://www.urssaf.fr/accueil/employeur/cotisations/liste-cotisations/taux-reduits-cas-particuliers.html
+
+salarié . régimes spécifiques . taux réduits . profession:
+  question:
+    Quelle est la profession du salarié pour l'application de taux de cotisations
+    réduits ?
+  une possibilité:
+    - VRP multicarte
+    - journaliste
+    - profession médicale
+    - artiste du spectacle
+    - mannequin
+
+  avec:
+    VRP multicarte:
+      icônes: 💼
+      description: |
+        Concerne les voyageurs, représentants et placiers (VRP) à cartes multiples.
+      références:
+        Taux de cotisations - VRP multicarte: https://www.urssaf.fr/accueil/outils-documentation/taux-baremes/taux-cotisations-VRP-multicarte.html
+
+    journaliste:
+      icônes: ✒️
+      description: |
+        Concerne les salariés pigistes et journalistes et assimilés pour les employeurs suivants :
+        - journaux d’information
+        - agences de presse
+        - entreprises de radiodiffusion et de télévision
+      références:
+        Taux réduits pour les journalistes: https://www.urssaf.fr/accueil/employeur/cotisations/liste-cotisations/taux-reduits-cas-particuliers.html#ancre-journalistes
+
+    profession médicale:
+      icônes: 🩺
+      description: |
+        Concerne les membres des professions médicales et les médecins salariés qui exercent
+        leur activité à **temps partiel régulièrement et simultanément** pour
+        plusieurs employeurs relevant du régime général.
+      références:
+        Taux réduits pour les professions médicales: https://www.urssaf.fr/accueil/employeur/cotisations/liste-cotisations/taux-reduits-cas-particuliers.html#ancre-professions-medicales
+
+    artiste du spectacle:
+      icônes: 🎭
+      description: |
+        Concerne uniquement les artistes des employeurs du spectacle vivant.
+        Les techniciens ne sont pas concernés.
+      références:
+        Taux réduits pour les artistes du spectacle: https://www.urssaf.fr/accueil/employeur/cotisations/liste-cotisations/taux-reduits-cas-particuliers.html#ancre-artistes-du-spectacle
+
+    mannequin:
+      icônes: ✨
+      description: |
+        Concerne tout mannequin percevant une rémunération.
+        mon-entreprise ne gère pas les cotisations sur les royalties.
+      références:
+        Taux réduits pour les mannequins: https://www.urssaf.fr/accueil/employeur/cotisations/liste-cotisations/taux-reduits-cas-particuliers.html#ancre-mannequins
+
+salarié . régimes spécifiques . taux réduits . réduction de taux:
+  applicable si:
+    est défini: profession
+  variations:
+    - si:
+        une de ces conditions:
+          - profession = 'artiste du spectacle'
+          - profession = 'mannequin'
+          - profession = 'profession médicale'
+      alors: 70%
+    - si: profession = 'journaliste'
+      alors: 80%
+
+  avec:
+    cotisations vieillesse employeur plafonnée taux:
+      remplace: cotisations . vieillesse . employeur . plafonnée . taux
+      valeur:
+        variations:
+          - si: profession = 'VRP multicarte'
+            alors: 6.9%   # Valeur en dur car pas exactement 80% du taux de base (cf référence)
+          - sinon: cotisations . vieillesse . employeur . plafonnée . taux * réduction de taux
+
+    cotisations vieillesse salarié plafonnée taux:
+      applicable si:
+        une de ces conditions:
+          - profession = 'artiste du spectacle'
+          - profession = 'mannequin'
+          - profession = 'journaliste'
+          - profession = 'profession médicale'
+      remplace: cotisations . vieillesse . salarié . plafonnée . taux
+      valeur: cotisations . vieillesse . salarié . plafonnée . taux * réduction de taux
+
+    cotisations vieillesse employeur déplafonnée taux:
+      applicable si:
+        une de ces conditions:
+          - profession = 'artiste du spectacle'
+          - profession = 'mannequin'
+          - profession = 'journaliste'
+      remplace: cotisations . vieillesse . employeur . déplafonnée . taux
+      valeur:
+        cotisations . vieillesse . employeur . déplafonnée . taux * réduction de taux
+
+    cotisations ATMP taux:
+      applicable si:
+        une de ces conditions:
+          - profession = 'artiste du spectacle'
+          - profession = 'mannequin'
+          - profession = 'journaliste'
+          - profession = 'VRP multicarte'
+      remplace: cotisations . ATMP . taux
+      variations:
+        - si: profession = 'VRP multicarte'
+          alors: 0.96%
+        - sinon:
+            valeur: cotisations . ATMP . taux * réduction de taux
+            arrondi: 2 décimale
+
+    cotisations ATMP taux minimum:
+      applicable si:
+        une de ces conditions:
+          - profession = 'artiste du spectacle'
+          - profession = 'mannequin'
+          - profession = 'journaliste'
+      remplace: cotisations . ATMP . taux minimum
+      valeur: cotisations . ATMP . taux minimum * réduction de taux
+      arrondi: 2 décimale
+
+    cotisations allocations familiales taux:
+      applicable si:
+        une de ces conditions:
+          - profession = 'artiste du spectacle'
+          - profession = 'mannequin'
+          - profession = 'journaliste'
+      remplace: cotisations . allocations familiales . taux
+      valeur: cotisations . allocations familiales . taux * réduction de taux
+
+    cotisations versement mobilité:
+      applicable si:
+        une de ces conditions:
+          - profession = 'artiste du spectacle'
+          - profession = 'mannequin'
+          - profession = 'journaliste'
+      remplace: cotisations . versement mobilité
+      valeur: cotisations . versement mobilité * réduction de taux
+
+    cotisations vieillesse salarié déplafonnée taux:
+      applicable si:
+        une de ces conditions:
+          - profession = 'artiste du spectacle'
+          - profession = 'mannequin'
+      remplace: cotisations . vieillesse . salarié . déplafonnée . taux
+      valeur: cotisations . vieillesse . salarié . déplafonnée . taux * réduction de taux
+
+    cotisations maladie salarié taux:
+      applicable si:
+        une de ces conditions:
+          - profession = 'artiste du spectacle'
+          - profession = 'mannequin'
+      remplace: cotisations . maladie . salarié . taux
+      valeur: cotisations . maladie . salarié . taux * réduction de taux
+
+    cotisations maladie employeur taux:
+      applicable si:
+        une de ces conditions:
+          - profession = 'artiste du spectacle'
+          - profession = 'mannequin'
+      remplace: cotisations . maladie . employeur . taux
+      valeur: cotisations . maladie . employeur . taux * réduction de taux
+
+    cotisations FNAL taux:
+      applicable si:
+        une de ces conditions:
+          - profession = 'artiste du spectacle'
+          - profession = 'mannequin'
+      remplace: cotisations . FNAL . taux
+      valeur: cotisations . FNAL . taux * réduction de taux
+
+salarié . régimes spécifiques . taxe sur les salaires:
+  applicable si: entreprise . TVA = non
+  unité: €/an
+  description:
+    La taxe sur les salaires en France est un impôt progressif créé en
+    1948 que certains employeurs doivent acquitter sur les salaires qu'ils
+    distribuent.
+  barème:
+    assiette:
+      valeur: assiette
+      abattement: rémunération . net . imposable . exonération prime d'impatriation
+    tranches:
+      - taux: 4.25%
+        plafond:
+          variations:
+            - si: date >= 01/2025
+              alors: 9147 €/an
+            - si: date >= 01/2024
+              alors: 8985 €/an
+            - si: date >= 01/2023
+              alors: 8573 €/an
+            - sinon: 8004 €/an
+      - taux: 8.5%
+        plafond:
+          variations:
+            - si: date >= 01/2025
+              alors: 18258 €/an
+            - si: date >= 01/2024
+              alors: 17936 €/an
+            - si: date >= 01/2023
+              alors: 17114 €/an
+            - sinon: 15981 €/an
+      - taux: 13.6%
+  note: Nous n'implémentons pas les taux spécifiques pour l'Outre-mer, ni la décôte
+  références:
+    Taxe sur les salaires: https://www.service-public.fr/professionnels-entreprises/vosdroits/F22576
+    Exonérations spécifiques à la taxe sur les salaires: http://bofip.impots.gouv.fr/bofip/6691-PGP.html
+
+  avec:
+    assiette: cotisations . CSG-CRDS . assiette de base
+
+salarié . régimes spécifiques . apprentissage:
+  applicable si: contrat . apprentissage
+
+salarié . régimes spécifiques . apprentissage . handicap:
+  question: L’apprenti/apprentie est-il/elle en situation de handicap ?
+  par défaut: non
+
+salarié . régimes spécifiques . apprentissage . participation employeur:
+  description: |
+    Pour les contrats d’apprentissage préparant à un diplôme ou un titre
+    professionnel au moins égal à Bac +3 (niveaux 6 et 7 du cadre national des
+    certifications professionnelles), l’entreprise participe au financement de la
+    formation en versant une somme forfaitaire de **750 € par contrat**, quelle que
+    soit sa durée.
+
+    Si le contrat est rompu au cours des **45 premiers jours de formation pratique**
+    (période pendant laquelle le contrat peut être librement rompu par
+    l’apprenti/apprentie ou l’employeur), l’entreprise est redevable de **50 %** du
+    financement dû par l’OPCO pour la période effectuée, dans la limite de 750 €.
+
+    Lorsqu’une entreprise accueille un ou une apprentie dont le contrat
+    initial a été rompu, cette nouvelle entreprise ne verse qu’une participation
+    réduite, de **200 €**.
+  applicable si:
+    toutes ces conditions:
+      - contrat . apprentissage . diplôme = 'niveau 6 ou 7'
+      - contrat . date d'embauche >= 01/07/2025
+  valeur: 750 €/an
+  références:
+    Quand l’entreprise doit-elle verser une participation forfaitaire pour un contrat d’apprentissage ?: https://entreprendre.service-public.gouv.fr/vosdroits/F39190
+
+salarié . coût total employeur:
+  identifiant court: cout-total-employeur
+  synonymes: [salaire chargé]
+  résumé: Dépensé par l'entreprise
+  description: |
+    Coût total d'embauche d'un salarié en incluant, en plus des éléments de
+    rémunération, les aides différées.
+    > C'est donc aussi une mesure de la valeur apportée par le salarié à
+    > l'entreprise : l'employeur est prêt à verser cette somme en contrepartie du
+    > travail fourni.
+
+    À ce coût total, il ne faut pas oublier d'ajouter les dépenses spécifiques à
+    votre entreprise : recherche du bon candidat, poste de travail, équipement,
+    formation initiale, médecine du travail, etc.
+  somme:
+    - rémunération . brut
+    - rémunération . frais professionnels . déductible
+    - cotisations . employeur
+    - activité partielle . indemnités
+    - régimes spécifiques . taxe sur les salaires
+    - régimes spécifiques . apprentissage . participation employeur
+  abattement: aides
+  plancher: 0 €/an
+  unité: €/mois

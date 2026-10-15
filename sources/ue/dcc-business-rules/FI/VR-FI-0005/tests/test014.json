@@ -1,0 +1,15 @@
+{
+    "name": "TRUE if Vaccine Medicinal Product =  EU/1/21/1624 (Valneva)",
+    "payload": {
+      "v": [
+        {
+            "mp": "EU/1/21/1624"
+        }
+      ]
+    },
+    "expected": true,
+    "external": {
+      "validationClock": "2023-05-10T00:00:00+00:00"
+    }
+  }
+  

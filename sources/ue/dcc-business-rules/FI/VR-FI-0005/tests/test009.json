@@ -1,0 +1,15 @@
+{
+    "name": "FALSE if Vaccine Medicinal Product =  Sputnik-V",
+    "payload": {
+      "v": [
+        {
+            "mp": "Sputnik-V"
+        }
+      ]
+    },
+    "expected": false,
+    "external": {
+      "validationClock": "2023-05-10T00:00:00+00:00"
+    }
+  }
+  

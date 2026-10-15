@@ -1,0 +1,72 @@
+{
+ "date": "2026-10-15",
+ "juge": "Opus, modèle indépendant du générateur (scripts/prompts/audit.md)",
+ "v1": {
+  "paires": 84,
+  "verdicts": {
+   "bon": 52,
+   "mineur": 26,
+   "majeur": 6
+  },
+  "taux_bon": 0.619,
+  "taux_majeur": 0.071,
+  "ic95_majeur": [
+   0.033,
+   0.147
+  ],
+  "scores": {
+   "fidelite_spec": 4.25,
+   "fidelite_gherkin": 4.29,
+   "couverture": 3.64,
+   "francais": 4.21,
+   "style": 3.58
+  }
+ },
+ "v2": {
+  "paires": 82,
+  "verdicts": {
+   "bon": 62,
+   "majeur": 3,
+   "mineur": 17
+  },
+  "taux_bon": 0.756,
+  "taux_majeur": 0.037,
+  "ic95_majeur": [
+   0.013,
+   0.102
+  ],
+  "scores": {
+   "fidelite_spec": 4.51,
+   "fidelite_gherkin": 4.55,
+   "couverture": 3.59,
+   "francais": 4.66,
+   "style": 3.71
+  }
+ },
+ "lecture": "v1 = consignes initiales (pilote, lot2, calibration) ; v2 = consignes avec défauts à éviter et relecture obligatoire (vague 1, service_public_2, legi_2). Les paires v2 auditées couvrent catala_reste, publicodes_reste, service_public, service_public_2 et legi_2.",
+ "comparaison_haiku_sonnet": {
+  "date": "2026-10-15",
+  "methode": "12 règles de service-public, mêmes sources, deux rédactions (Sonnet, Haiku) mélangées sous étiquettes anonymes, auditées par Opus sans connaître le modèle",
+  "sonnet": {
+   "paires": 12,
+   "bon": 12,
+   "mineur": 0,
+   "majeur": 0,
+   "fidelite_gherkin": 4.83,
+   "francais": 4.92
+  },
+  "haiku": {
+   "paires": 12,
+   "bon": 7,
+   "mineur": 4,
+   "majeur": 1,
+   "fidelite_gherkin": 4.08,
+   "francais": 4.0
+  },
+  "jetons_par_lot_de_25": {
+   "sonnet": 115349,
+   "haiku": 196554
+  },
+  "conclusion": "Haiku n'est meilleur sur aucune des 12 règles, moins bon sur la fidélité et le français, et plus coûteux en jetons (deuxième essai concordant). Sonnet conservé pour la génération. Échantillon petit."
+ }
+}

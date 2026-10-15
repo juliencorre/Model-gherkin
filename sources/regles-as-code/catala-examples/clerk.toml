@@ -1,0 +1,66 @@
+[project]
+name = "catala-examples"
+include_dirs = [
+  "base_mensuelle_allocations_familiales",
+  "smic",
+  "prologue_france",
+  "prestations_familiales",
+  "allocations_familiales",
+  "aides_logement",
+  "droit_successions",
+  "impot_revenu",
+  "asp/aide_fibre",
+  "asp/fonpeps",
+  "asp/bcae7",
+  "us_tax_code",
+]
+
+[[target]]
+name = "allocations-familiales"
+modules = ["Allocations_familiales"]
+backends = ["ocaml", "python", "c", "java"]
+tests = ["allocations_familiales/tests/"]
+dependencies = ["smic"]
+
+[[target]]
+name = "aides-logement"
+modules = ["Aides_logement"]
+backends = ["ocaml", "python", "c", "java"]
+tests = ["aides_logement/tests/"]
+dependencies = ["allocations-familiales"]
+
+[[target]]
+name = "impot-revenu"
+modules = ["Impot_revenu"]
+backends = ["ocaml"]            # External module 'Oracle' exists only in OCaml
+tests = ["impot_revenu/tests/"]
+
+[[target]]
+name = "aide-fibre"
+modules = ["Aide_travaux_raccordement_fibre_optique", "Eligibilite_commune"]
+backends = ["ocaml"]                                                         # External module 'Oracle' exists only in OCaml
+tests = ["asp/aide_fibre/tests/"]
+
+[[target]]
+name = "fonpeps"
+modules = ["Fonpeps"]
+backends = ["ocaml"]           # External module 'Oracle' exists only in OCaml
+tests = ["asp/fonpeps/tests/"]
+dependencies = ["smic"]
+
+[[target]]
+name = "BCAE7"
+modules = ["BCAE7"]
+backends = ["ocaml", "java", "python"]
+tests = ["asp/bcae7/tests/"]
+
+[[target]]
+name = "us-tax-code"
+modules = ["Us_tax_code"]
+backends = ["ocaml"]
+tests = ["us_tax_code/tests/"]
+
+[[target]]
+name = "smic"
+modules = ["Smic","France"]
+backends = ["ocaml", "python", "c", "java"]

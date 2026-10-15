@@ -1,0 +1,310 @@
+artiste-auteur:
+  experimental: oui
+  description: Le régime des artistes-auteurs
+  icônes: 👩‍🎨
+
+artiste-auteur . revenus:
+artiste-auteur . revenus . traitements et salaires:
+  titre: Revenu en traitements et salaires
+  par défaut: 0 €/an
+  résumé: Le montant brut hors TVA de vos droits d'auteur (recettes précomptées)
+  plancher: 0€/an
+
+artiste-auteur . revenus . BNC:
+  unité: €/an
+  formule:
+    valeur: recettes
+    abattement:
+      variations:
+        - si: micro-bnc
+          alors: charges forfaitaires
+        - sinon: frais réels
+
+artiste-auteur . revenus . BNC . micro-bnc:
+  non applicable si: contrôle micro-bnc
+  applicable si: recettes > 0 €/an
+  par défaut: oui
+  question: Souhaitez-vous opter pour le régime micro-BNC ?
+  résumé: Avec abattement forfaitaire fiscal de 34 % au titre des frais professionnels
+
+artiste-auteur . revenus . BNC . contrôle micro-bnc:
+  description: Vos revenus ne vous permettent pas d'opter pour le régime micro-BNC.
+  formule:
+    toutes ces conditions:
+      - recettes != 0
+      - recettes > plafond
+  avec:
+    plafond: entreprise . chiffre d'affaires . seuil micro . libérale
+
+artiste-auteur . revenus . BNC . recettes:
+  titre: Revenu en BNC
+  par défaut: 0 €/an
+  résumé: Le montant de vos recettes brutes hors TVA
+  plancher: 0€/an
+
+artiste-auteur . revenus . BNC . frais réels:
+  par défaut: 0 €/an
+  question: Régime des frais réels BNC
+  résumé: Montant de vos dépenses (frais professionnels, amortissements…) qui
+    seront imputés à vos recettes afin d’établir vos bénéfices ou déficits
+  applicable si: recettes > 0 €/an
+  non applicable si: micro-bnc
+  plancher: 0€/an
+
+artiste-auteur . revenus . BNC . charges forfaitaires:
+  formule: 34% * recettes
+
+artiste-auteur . cotisations:
+  formule:
+    somme:
+      - vieillesse
+      - CSG-CRDS
+      - formation professionnelle
+    arrondi: oui
+  références:
+    Urssaf.fr: https://www.urssaf.fr/portail/home/espaces-dedies/artistes-auteurs-diffuseurs-comm/vous-etes-artiste-auteur/vos-cotisations-et-contributions.html
+
+artiste-auteur . cotisations . assiette:
+  description: Les revenus des artistes-auteurs peuvent être catégorisés soit
+    comme des traitements et salaires, soit comme des bénéfices non commerciaux.
+    Les cotisations sociales sont payées sur la somme des revenus de ces deux
+    catégories.
+  formule:
+    somme:
+      - revenus . traitements et salaires
+      - revenus . BNC * 1.15
+
+artiste-auteur . cotisations . option surcotisation:
+  applicable si:
+    toutes ces conditions:
+      - assiette < assiette surcotisation
+  question: Souhaitez-vous surcotiser pour augmenter vos droits à retraite ?
+  description: |
+    Vos revenus sont en dessous des seuils vous permettant de valider l'ensemble
+    de vos droits sociaux. Vous pouvez choisir de surcotiser sur l'année entière
+    pour augmenter vos droits.
+
+    Dans ce cas, vos cotisations vieillesse seront calculées sur la base de 600 Smic
+    horaire dans l’année.
+  par défaut: non
+  références:
+    Urssaf.fr: https://www.urssaf.fr/portail/home/espaces-dedies/artistes-auteurs-diffuseurs-comm/vous-etes-artiste-auteur/la-surcotisation.html
+
+  avec:
+    assiette vieillesse:
+      remplace:
+        références à: assiette
+        dans: vieillesse
+      valeur: assiette surcotisation
+
+artiste-auteur . cotisations . assiette surcotisation:
+  produit:
+    - SMIC . horaire . début d'année
+    - variations:
+        - si: date >= 01/01/2019
+          alors: 600 heure/an
+        - sinon: 900 heure/an
+
+artiste-auteur . cotisations . avertissement trimestres retraite:
+  type: notification
+  sévérité: avertissement
+  formule:
+    toutes ces conditions:
+      - assiette > 0 €/an
+      - assiette < 600 heure/an * SMIC . horaire . début d'année
+      - option surcotisation = non
+  description: |
+    Vos revenus ne vous permettent pas de valider 4 trimestres pour la retraite
+    de base. Vous pouvez décider de « surcotiser » pour valider 4 trimestres et
+    bénéficier d'indemnités journalières.
+
+artiste-auteur . cotisations . vieillesse:
+  titre: Retraite de base
+  formule:
+    somme:
+      - plafonnée
+      - déplafonnée
+  références:
+    Guide de la retraite des artistes-auteurs 2024: https://www.secu-artistes-auteurs.fr/sites/default/files/2024-03/GUIDE_RETRAITE_01_24.pdf
+
+  avec:
+    déplafonnée:
+      produit:
+        - assiette
+        - salarié . cotisations . vieillesse . salarié . déplafonnée . taux -
+          0.4%
+
+    plafonnée:
+      produit:
+        - valeur: assiette
+          plafond: plafond sécurité sociale
+        - salarié . cotisations . vieillesse . salarié . plafonnée . taux - 0.75%
+
+artiste-auteur . cotisations . CSG-CRDS:
+  formule:
+    somme:
+      - CSG
+      - CRDS
+
+artiste-auteur . cotisations . CSG-CRDS . assiette:
+  formule:
+    somme:
+      - cotisations . assiette
+      - (- CSG-CRDS . abattement)
+
+artiste-auteur . cotisations . CSG-CRDS . abattement:
+  formule:
+    produit:
+      - valeur: revenus . traitements et salaires
+        plafond: 4 * plafond sécurité sociale
+      - 1.75%
+
+artiste-auteur . cotisations . CSG-CRDS . CSG:
+  formule:
+    produit:
+      - CSG-CRDS . assiette
+      - 9.20%
+
+artiste-auteur . cotisations . CSG-CRDS . CRDS:
+  formule:
+    produit:
+      - CSG-CRDS . assiette
+      - 0.50%
+
+artiste-auteur . cotisations . formation professionnelle:
+  formule:
+    produit:
+      - assiette
+      - 0.35%
+
+artiste-auteur . cotisations . IRCEC:
+  titre: Retraite complémentaire
+  description: |
+    Si vous exercez une activité rémunérée en droits d’auteur et assimilés,
+    l’IRCEC est l’organisme de sécurité sociale qui assure la gestion de votre
+    retraite complémentaire obligatoire.
+
+    Le rattachement auprès d’un ou plusieurs régimes (RAAP, RACD et/ou RACL)
+    dépend de la nature et du montant de vos revenus artistiques.
+  formule:
+    somme:
+      - cotisation RAAP
+      - cotisation RACD
+      - cotisation RACL
+  références:
+    Guide de la retraite des artistes-auteurs (2026): https://www.ircec.fr/wp-content/uploads/2026/02/guide-de-la-retraite-ircec.pdf
+    Guide de la retraite des artistes-auteurs (2025): https://www.ircec.fr/wp-content/uploads/2025/03/guide-ircec-2025-web.pdf
+
+artiste-auteur . cotisations . IRCEC . cotisation RAAP:
+  applicable si: assiette >= seuil d'affiliation
+  description: |
+    Vous pouvez bénéficier d'un taux réduit à votre demande si vos revenus
+    n'atteignent pas à seuil minimal pour une année donnée. Ce taux réduit
+    s'applique également à vos revenus déjà soumis à cotisation auprès du RACL
+    ou du RACD.
+  formule:
+    variations:
+      - si: taux réduit
+        alors:
+          produit:
+            - assiette
+            - 4%
+      - sinon:
+          barème:
+            assiette: assiette
+            tranches:
+              - taux: 4%
+                plafond:
+                  variations:
+                    - si: profession . RACD
+                      alors: cotisation RACD . plafond
+                    - si: profession . RACL
+                      alors: cotisation RACL . plafond
+              - taux: 8%
+                plafond: 3 * plafond sécurité sociale
+    arrondi: oui
+  références:
+    Guide de la retraite des artistes-auteurs (2026): https://www.ircec.fr/wp-content/uploads/2026/02/guide-de-la-retraite-ircec.pdf
+    Guide de la retraite des artistes-auteurs (2025): https://www.ircec.fr/wp-content/uploads/2025/03/guide-ircec-2025-web.pdf
+
+artiste-auteur . cotisations . IRCEC . cotisation RAAP . seuil d'affiliation:
+  valeur: 900 * SMIC . horaire . début d'année N-1
+
+artiste-auteur . cotisations . IRCEC . cotisation RAAP . taux réduit:
+  applicable si: assiette < 3 * seuil d'affiliation
+  question: Souhaitez-vous cotiser sur la base d'un taux réduit pour votre
+    retraite complémentaire à l'IRCEC ?
+  par défaut: non
+  description: |
+    Le régime RAAP vous permet d'opter pour un taux réduit de 4% au lieu de 8%
+    si vous en faite la demande.
+
+    Les points de retraite complémentaire sont acquis au pro-rata du montant
+    cotisé. En réduisant votre cotisation vous réduisez donc le nombre de points
+    acquis.
+  références:
+    Guide de la retraite des artistes-auteurs (2026): https://www.ircec.fr/wp-content/uploads/2026/02/guide-de-la-retraite-ircec.pdf
+    Guide de la retraite des artistes-auteurs (2025): https://www.ircec.fr/wp-content/uploads/2025/03/guide-ircec-2025-web.pdf
+
+artiste-auteur . cotisations . IRCEC . profession:
+  question: Exercez-vous l'une de professions suivantes ?
+  description: |
+    Selon  la  nature  de  leur  activité,  les  artistes-auteurs  cotisent  à
+    un  ou  plusieurs  régimes  de  retraite  complémentaire  gérés  par
+    l’IRCEC :  dans  tous  les  cas  et  si  vous  atteignez  le  seuil
+    d’affiliation,  au  RAAP,  puis  selon  votre  activité  artistique  au RACD
+    et/ou au RACL.
+  une possibilité:
+    - RACD
+    - RACL
+  par défaut: "''"
+
+artiste-auteur . cotisations . IRCEC . profession . RACD:
+  icônes: 🎞️
+  titre: auteur ou compositeur dramatique, de spectacle vivant, de films
+  description: |
+    Les professions suivantes cotisent au RACD :
+      - Les auteurs dramatiques exerçant l’une des professions suivantes : scénariste, dialoguiste, adaptateur, réalisateur, auteur de la bible littéraire, auteur graphique d’animation,  créateur  des  personnages  originaux  et  des  décors  s’il  s’agit  d’un  univers original, etc.
+      - Les  auteurs  et  compositeurs  dramatiques  et  du  spectacle  vivant  :  théâtre,  danse, opéra, cirque, arts de la rue, etc.
+  formule: profession = 'RACD'
+
+artiste-auteur . cotisations . IRCEC . profession . RACL:
+  icônes: 🎙️
+  titre: auteur ou compositeur lyrique, dialoguiste de doublage
+  description:
+    Les auteurs et compositeurs d’œuvres musicales et les dialoguistes
+    de doublage cotisent au RACL.
+  formule: profession = 'RACL'
+
+artiste-auteur . cotisations . IRCEC . régime RACL:
+  question: Cotisez-vous au RACL ?
+  par défaut: non
+
+artiste-auteur . cotisations . IRCEC . cotisation RACD:
+  applicable si: profession . RACD
+  formule:
+    produit:
+      - valeur: assiette
+        plafond: plafond
+      - 8%
+    arrondi: oui
+
+  avec:
+    plafond: 496250 €/an
+
+artiste-auteur . cotisations . IRCEC . cotisation RACL:
+  applicable si: profession . RACL
+  formule:
+    barème:
+      assiette: assiette
+      tranches:
+        - taux: 0%
+          plafond: 2739 €/an
+        - taux: 6.5%
+          plafond: plafond
+        - taux: cotisation de solidarité
+    arrondi: oui
+
+  avec:
+    cotisation de solidarité: 1.5%
+    plafond: 376665 €/an

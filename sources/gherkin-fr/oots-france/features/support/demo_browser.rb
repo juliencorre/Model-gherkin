@@ -1,0 +1,235 @@
+require 'nokogiri'
+require Rails.root.join('spec/support/rendered_text')
+
+# A browser walking the demonstration procedure, from the operator's login to
+# the identified form, across the two hosts the journey crosses: this
+# application and FranceConnect+.
+#
+# An HTTP client and not a browser proper: these scenarios carry no
+# `@javascript`, nothing of the journey waiting on a script. What it does do is
+# what a browser
+# does — it keeps the session cookie, follows redirections one at a time,
+# including the ones that leave for the portal and come back, and **submits the
+# forms it is shown**, hidden fields included. Posting to an address without
+# reading the form first would sidestep the CSRF token, which is precisely one
+# of the things the journey has to carry.
+#
+# The cookie is sent to this application and to it alone: a session cookie that
+# followed a redirection to another host would be exactly the leak the same-site
+# rules exist to prevent, and the scenario must not do what a browser refuses to.
+class DemoBrowser
+  # What a sighted reader sees of a node, written once for the two suites: the
+  # marks of this console say their meaning off screen, and an assertion on what
+  # a page shows has to drop it.
+  include RenderedText
+
+  MAXIMUM_REDIRECTIONS = 10
+
+  attr_reader :page, :current_url
+
+  def initialize(procedure_url)
+    @procedure_url = procedure_url
+    @cookie = nil
+    @connection = Faraday.new do |builder|
+      builder.request(:url_encoded)
+      builder.adapter(Faraday.default_adapter)
+    end
+  end
+
+  def sign_in(email, password)
+    visit('/admin/session/new')
+    submit(email:, password:)
+  end
+
+  # The button of the header, whose form carries the `_method` that makes it a
+  # DELETE — read off the page like any other.
+  def sign_out = submit_to('/admin/session')
+
+  def visit(path) = follow(get("#{procedure_url}#{path}"))
+
+  # An address given whole, as a correspondent hands the user one.
+  def follow_address(url) = follow(get(url))
+
+  def links(selector) = document.css(selector).pluck('href')
+
+  def fetch(url) = get(absolute(url)).body
+
+  # The button of one card, which is what starts everything: what follows
+  # crosses to the portal and comes back on its own. The card is named rather
+  # than the address it submits to, every card submitting to the same one — and
+  # the first of them is not necessarily the one the scenario means.
+  def start_identification(france_connect) = send_form(card_of(france_connect))
+
+  # A card of the screen the line is chosen on, named by its title as the
+  # operator reads it, and followed where its link leads.
+  def choose_card(title)
+    link = document.css('.fr-card__title a').find { |candidate| candidate.text.strip == title }
+    raise ArgumentError, "Aucune carte « #{title} » sur #{procedure_url}" if link.nil?
+
+    visit(link['href'])
+  end
+
+  # A card of the screen the procedure is chosen on, named by the code its title
+  # opens with, and followed where its link leads.
+  def choose_procedure(code)
+    link = document.css('.fr-card__title a').find { |candidate| candidate.text.strip.split(' — ').first == code }
+    raise ArgumentError, "Aucune démarche « #{code} » sur #{procedure_url}" if link.nil?
+
+    visit(link['href'])
+  end
+
+  # The button of one card of the documents page, the card named by its title
+  # as the operator reads it: several cards submit to the same address, each
+  # naming its own requirement.
+  def request_card(title)
+    form = card_titled(title).at_css('.demo-request form')
+    raise ArgumentError, "Aucun bouton sur la carte « #{title} » : #{body}" if form.nil?
+
+    send_form(form)
+  end
+
+  # A card added from the list the documents page offers, its entry named as
+  # the list shows it.
+  def add_card(path, name)
+    form = form_posting_to(path)
+    option = form.css('select option').find { |candidate| candidate.text.strip == name }
+    raise ArgumentError, "Aucune exigence « #{name} » à ajouter : #{body}" if option.nil?
+
+    send_form(form, option.ancestors('select').first['name'] => option['value'])
+  end
+
+  # The three pages of the European path, each submitted where the page itself
+  # says to.
+  def choose(name, value) = submit(name => value)
+
+  # The identity page's last form, the one « Input an identity » reveals.
+  def enter_identity(fields) = send_form(document.css('form').last, fields)
+
+  # A page carries several forms — the header always carries the sign-out one —
+  # so the form is named by where it posts, and the scenario's values travel with
+  # whatever it already held. Public like `choose`: the steps submit it directly.
+  def submit_to(path, fields = {}) = send_form(form_posting_to(path), fields)
+
+  # What a sighted reader sees of the heading: the marks of the console
+  # write their meaning off screen, and that sentence is not part of it.
+  def title
+    heading = document.at_css('h1')
+
+    heading ? seen(heading) : ''
+  end
+
+  def body = page.body.to_s
+
+  # Both shapes a page of the demonstration states an attribute in: a table row
+  # for what a directory or an exchange yields, a definition list for the
+  # identity card. A scenario reads « intitulé : valeur » and has no business
+  # knowing which markup carries it.
+  def rows = table_rows.merge(definition_rows)
+
+  def badges = document.css('.fr-badge').map { |badge| badge.text.strip }
+
+  private
+
+  attr_reader :procedure_url, :connection
+
+  def table_rows
+    document.css('table tr').to_h do |row|
+      [row.at_css('th')&.text.to_s.strip, row.at_css('td')&.text.to_s.strip]
+    end
+  end
+
+  def definition_rows
+    document.css('dl > div').to_h do |pair|
+      [pair.at_css('dt')&.text.to_s.strip, pair.at_css('dd')&.text.to_s.strip]
+    end
+  end
+
+  def document = Nokogiri::HTML(body)
+
+  def submit(fields) = send_form(only_form, fields)
+
+  def only_form
+    document.at_css('form') || raise("Aucun formulaire dans la page « #{title} » : #{body}")
+  end
+
+  def card_titled(title)
+    document.css('.requirement-card').find { |card| card.at_css('.fr-card__title')&.then { seen(it) } == title } ||
+      raise(ArgumentError, "Aucune carte « #{title} » dans la page « #{self.title} » : #{body}")
+  end
+
+  def card_of(france_connect)
+    document.css('form').find { |form| form.at_css("input[name=france_connect][value='#{france_connect}']") } ||
+      raise("Aucune carte du FranceConnect+ « #{france_connect} » dans la page « #{title} » : #{body}")
+  end
+
+  def form_posting_to(path)
+    document.css('form').find { |form| URI.parse(form['action'].to_s).path == path } ||
+      raise("Aucun formulaire vers #{path} dans la page « #{title} » : #{body}")
+  end
+
+  # The hidden fields first, the scenario's own values second: what a form
+  # carries — the CSRF token, the `_method` of a non-POST button — travels
+  # exactly as the page wrote it.
+  def send_form(form, fields = {})
+    parameters = form.css('input[type=hidden]').to_h { |input| [input['name'], input['value']] }
+
+    follow(post(absolute(form['action']), parameters.merge(fields.transform_keys(&:to_s))))
+  end
+
+  # One hop at a time, and never through Faraday's own follower: the cookie has
+  # to be decided host by host, which a middleware following the whole chain
+  # could not do.
+  def follow(response)
+    MAXIMUM_REDIRECTIONS.times do
+      return @page = response unless response.status.between?(300, 399)
+
+      location = absolute(response.headers.fetch('Location'))
+      return leave_for(location, response) if nowhere?(location)
+
+      response = get(location)
+    end
+
+    raise "Plus de #{MAXIMUM_REDIRECTIONS} redirections depuis #{current_url}."
+  end
+
+  # RFC 2606 reserves `.example` for names that resolve nowhere: a scenario
+  # gives one to a portal it does not run. Sent there, the browser stops where
+  # a real one would have left, and says where it was sent.
+  def nowhere?(url) = URI.parse(url).host.to_s.end_with?('.example')
+
+  def leave_for(url, response)
+    @current_url = url
+    @page = response
+  end
+
+  def get(url) = record(url) { connection.get(url, nil, headers(url)) }
+
+  def post(url, parameters) = record(url) { connection.post(url, parameters, headers(url)) }
+
+  def record(url)
+    @current_url = url
+    response = yield
+    remember(url, response)
+
+    response
+  end
+
+  def headers(url) = ours?(url) && @cookie ? { 'Cookie' => @cookie } : {}
+
+  def remember(url, response)
+    return unless ours?(url)
+
+    Array(response.headers['set-cookie']).flat_map { |header| header.split(/,\s*(?=[^;]+=)/) }
+      .each { |cookie| @cookie = cookie.split(';').first }
+  end
+
+  def ours?(url) = url.start_with?(procedure_url)
+
+  def absolute(location)
+    return location if location.start_with?('http://', 'https://')
+
+    base = URI.parse(current_url)
+
+    "#{base.scheme}://#{base.host}:#{base.port}#{location}"
+  end
+end
