@@ -22,6 +22,18 @@ Tu produis des paires (spécification de règle de gestion → scénarios Gherki
 - Les données d'entrée (âge, revenu, date) peuvent être choisies librement, mais de façon plausible.
 - Si le code et le texte de loi divergent, aligne-toi sur le texte, ne teste pas le cas divergent et signale-le dans `notes`.
 
+## Défauts constatés à l'audit indépendant : à éviter absolument
+1. **Spécification qui perd une condition** : montant sans sa périodicité (« 200 € par mois » ≠ « 200 € »), restriction de public (degré de parenté, filière, année d'études, date d'effet), exception, outre-mer / territoire. Relis la source phrase par phrase et vérifie que chacune est reprise.
+2. **Scénario nominal sans toutes les conditions de la source** : si la source pose deux conditions cumulatives (« revenus modestes » ET âge), le scénario nominal doit établir les deux. Ne déclare jamais une personne éligible sans la condition de ressources posée par la source.
+3. **Fausses étiquettes** : `@limite` uniquement pour une vraie borne de la source (jour exact, seuil exact, âge exact, avec le côté inclusif / exclusif de la source) ; `@négatif` uniquement pour un refus ou une exclusion que la source énonce. Ne répète pas un autre scénario.
+4. **Conséquence supposée** : ne prends pas comme résultat attendu une conséquence que la source ne dit pas (ex : « sans réponse, la demande est refusée », « cumul sur 3 jours »). Teste seulement ce qui est écrit.
+5. **Conversions non fournies** : ne convertis pas des mois en jours, un mensuel en annuel ou un taux en montant sans que la source donne la règle de conversion ; n'invente pas de proratisation. Pour un plafond proratisé ou réduit, la base de calcul est celle que la source indique.
+6. **Contradictions** : un `Étant donné` du scénario ne doit pas contredire le `Contexte`.
+7. **Français et style** : accords et articles corrects (« un couple », « n'est pas une résidence principale »), dates écrites « 1er janvier 2024 » ou « 15 mars 2024 » (pas de format technique AAAA-MM-JJ dans les étapes), montants « 1 250 € » sans guillemets ni décimales inutiles, pas d'annotation « (valeur fictive) » dans les étapes (elle va dans `notes`), pas de terme absent de la source (marque, sigle, catégorie), `Plan du scénario` seulement avec au moins 2 lignes d'exemples.
+
+## Relecture obligatoire avant d'écrire la sortie
+Pour chaque paire, relis-la comme un auditeur sévère en 5 points : (a) chaque phrase de la source est reprise ou volontairement écartée ; (b) chaque résultat attendu est dans la source ou se recalcule ; (c) chaque `@limite` / `@négatif` est mérité ; (d) aucune conséquence supposée ; (e) français correct. Corrige avant d'écrire. Mentionne dans `notes` ce que tu n'as pas pu couvrir.
+
 ## Particularités selon le type d'unité
 - `catala` / `catala_reste` : `texte_loi` = article de loi ; `code_catala` précise valeurs et bornes.
 - `publicodes` / `publicodes_reste` : `texte_loi` = règle YAML complète ; les règles qu'elle référence ne sont pas fournies.
