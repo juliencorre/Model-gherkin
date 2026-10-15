@@ -5,7 +5,9 @@ Usage: construire_corpus.py [--racine /home/user/Model-gherkin]
 
 Entrées (déclarées dans LOTS) : fichiers de règles (id, type, domaine, texte_loi, ...) et fichiers de
 paires (id, specification, gherkin, notes). Sortie :
-  data/corpus/pairs/<lot>.jsonl   toutes les paires enrichies (métadonnées, contrôles, niveau)
+  data/corpus/            corpus public (sources redistribuables uniquement) ; data/corpus_prive/ : toutes les paires
+                          (non versionné, sources copyleft ou à licence incertaine)
+  data/corpus/pairs/<lot>.jsonl   les paires enrichies (métadonnées, contrôles, niveau)
   data/corpus/train.jsonl, val.jsonl, test.jsonl   découpage par groupe de source (jamais par scénario)
   data/corpus/STATS.json          comptages par source, niveau, licence, contrôle
   data/corpus/rejets.jsonl        paires écartées et motif
@@ -162,7 +164,9 @@ def niveau(nom, pid, regle, ctl):
         return "D"  # résultats attendus non vérifiables : conservée, exclue de l'entraînement par défaut
     if nom == "pilote" and pid in VERIFIES:  # rapports de vérification Catala du pilote (RG-01..06)
         return "A"
-    return "C" if regle["type"] in ("service_public",) else "B"
+    if regle["type"] in ("openfisca", "cdtn"):
+        return "A"  # résultats repris de cas de test exécutés par le moteur de la source
+    return "C" if regle["type"] in ("service_public", "aides_jeunes") else "B"
 
 
 def groupe(regle):
@@ -172,6 +176,7 @@ def groupe(regle):
 def main():
     sortie = RACINE / "data/corpus"
     (sortie / "pairs").mkdir(parents=True, exist_ok=True)
+    (RACINE / "data/corpus_prive").mkdir(parents=True, exist_ok=True)
     rejets, vus_spec, toutes = [], set(), []
     for nom, f_regles, motif in LOTS:
         regles = {}
@@ -210,9 +215,11 @@ def main():
                     "controles": ctl, "niveau": niv, "relu_humain": False,
                     "groupe": groupe(r),
                 })
-        with open(sortie / "pairs" / f"{nom}.jsonl", "w", encoding="utf-8") as fh:
-            for p in paires:
-                fh.write(json.dumps(p, ensure_ascii=False) + "\n")
+        for dossier, jeu in ((sortie, [p for p in paires if p["redistribuable"]]), (RACINE / "data/corpus_prive", paires)):
+            (dossier / "pairs").mkdir(parents=True, exist_ok=True)
+            with open(dossier / "pairs" / f"{nom}.jsonl", "w", encoding="utf-8") as fh:
+                for p in jeu:
+                    fh.write(json.dumps(p, ensure_ascii=False) + "\n")
         toutes += paires
 
     # Découpage par groupe de source : ~5 % des groupes en test, ~5 % en validation
@@ -220,15 +227,19 @@ def main():
         h = int(hashlib.sha256(g.encode()).hexdigest(), 16) % 100
         return "test" if h < 5 else "val" if h < 10 else "train"
 
-    parts = {"train": [], "val": [], "test": []}
     for p in toutes:
         p["split"] = tranche(p["groupe"]) if p["niveau"] != "D" else "a_relire"
-        if p["split"] in parts:
-            parts[p["split"]].append(p)
-    for k, v in parts.items():
-        with open(sortie / f"{k}.jsonl", "w", encoding="utf-8") as fh:
-            for p in v:
-                fh.write(json.dumps(p, ensure_ascii=False) + "\n")
+    prive = RACINE / "data/corpus_prive"  # toutes les paires, y compris sources non redistribuables (non versionné)
+    prive.mkdir(parents=True, exist_ok=True)
+    for dossier, jeu in ((sortie, [p for p in toutes if p["redistribuable"]]), (prive, toutes)):
+        for k in ("train", "val", "test", "a_relire"):
+            with open(dossier / f"{k}.jsonl", "w", encoding="utf-8") as fh:
+                for p in jeu:
+                    if p["split"] == k:
+                        fh.write(json.dumps(p, ensure_ascii=False) + "\n")
+    parts = {k: [p for p in toutes if p["split"] == k] for k in ("train", "val", "test")}
+    for fichier in ("pairs/*.jsonl",):
+        pass
     with open(sortie / "rejets.jsonl", "w", encoding="utf-8") as fh:
         for r in rejets:
             fh.write(json.dumps(r, ensure_ascii=False) + "\n")
@@ -239,6 +250,8 @@ def main():
         "par_domaine": Counter(f"{p['source_type']}/{p['domaine']}" for p in toutes),
         "par_licence": Counter(p["licence_source"] for p in toutes),
         "redistribuables": sum(p["redistribuable"] for p in toutes),
+        "qualite_A_B_C": sum(p["niveau"] in "ABC" for p in toutes),
+        "entrainables_redistribuables": sum(p["niveau"] in "ABC" and p["redistribuable"] for p in toutes),
         "par_split": {**{k: len(v) for k, v in parts.items()}, "a_relire": sum(p["niveau"] == "D" for p in toutes)},
         "scenarios_total": sum(p["controles"]["scenarios"] for p in toutes),
         "motifs_rejet": Counter(r["motif"].split(":")[0] for r in rejets),

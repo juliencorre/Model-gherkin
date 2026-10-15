@@ -27,6 +27,8 @@
   "MIT": 115
  },
  "redistribuables": 220,
+ "qualite_A_B_C": 186,
+ "entrainables_redistribuables": 186,
  "par_split": {
   "train": 177,
   "val": 3,

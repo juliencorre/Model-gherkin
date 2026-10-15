@@ -1,0 +1,32 @@
+[
+ [
+  "service_public",
+  "data/unites/service_public.jsonl",
+  "data/lots/service_public/sortie_*.jsonl"
+ ],
+ [
+  "catala_reste",
+  "data/unites/catala_reste.jsonl",
+  "data/lots/catala_reste/sortie_*.jsonl"
+ ],
+ [
+  "publicodes_reste",
+  "data/unites/publicodes_reste.jsonl",
+  "data/lots/publicodes_reste/sortie_*.jsonl"
+ ],
+ [
+  "openfisca",
+  "data/unites/openfisca.jsonl",
+  "data/lots/openfisca/sortie_*.jsonl"
+ ],
+ [
+  "cdtn",
+  "data/unites/cdtn.jsonl",
+  "data/lots/cdtn/sortie_*.jsonl"
+ ],
+ [
+  "aides_jeunes",
+  "data/unites/aides_jeunes.jsonl",
+  "data/lots/aides_jeunes/sortie_*.jsonl"
+ ]
+]

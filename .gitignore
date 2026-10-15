@@ -1,1 +1,8 @@
 sources_local/
+data/corpus_prive/
+data/unites/openfisca.jsonl
+data/unites/cdtn.jsonl
+data/unites/aides_jeunes.jsonl
+data/lots/openfisca/
+data/lots/cdtn/
+data/lots/aides_jeunes/
