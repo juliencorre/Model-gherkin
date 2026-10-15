@@ -1,0 +1,38 @@
+{
+ "total": 220,
+ "rejets": 0,
+ "par_niveau": {
+  "A": 6,
+  "B": 180,
+  "D": 34
+ },
+ "par_source": {
+  "catala": 105,
+  "publicodes": 115
+ },
+ "par_domaine": {
+  "catala/smic": 10,
+  "catala/allocations_familiales": 16,
+  "catala/aides_logement": 72,
+  "catala/prestations_familiales": 1,
+  "catala/droit_successions": 4,
+  "catala/asp": 2,
+  "publicodes/modele-social": 65,
+  "publicodes/modele-ti": 25,
+  "publicodes/modele-as": 15,
+  "publicodes/modele-commun": 10
+ },
+ "par_licence": {
+  "Apache-2.0": 105,
+  "MIT": 115
+ },
+ "redistribuables": 220,
+ "par_split": {
+  "train": 177,
+  "val": 3,
+  "test": 6,
+  "a_relire": 34
+ },
+ "scenarios_total": 761,
+ "motifs_rejet": {}
+}
