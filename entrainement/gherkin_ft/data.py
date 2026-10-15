@@ -327,8 +327,10 @@ def build_manifest(train: list[Pair], evals: list[Pair], report: DataReport) -> 
     }
 
 
-def load_dataset_splits(cfg: DataConfig) -> tuple[list[Pair], list[Pair], DataReport]:
-    """Point d'entrée : charge les fichiers, filtre, dédoublonne et découpe."""
+def load_dataset_splits(cfg: DataConfig, apply_limit: bool = True) -> tuple[list[Pair], list[Pair], DataReport]:
+    """Point d'entrée : charge les fichiers, filtre, dédoublonne et découpe.
+
+    `apply_limit=False` laisse `train_limit` à l'appelant (qui l'applique après le filtre de longueur)."""
     report = DataReport()
     pairs = load_pairs(cfg.train_files, cfg, report)
     if cfg.eval_files:
@@ -340,7 +342,8 @@ def load_dataset_splits(cfg: DataConfig) -> tuple[list[Pair], list[Pair], DataRe
     if cfg.split_manifest:
         manifest = json.loads(Path(cfg.split_manifest).read_text(encoding="utf-8"))
     train, evals = split_pairs(pairs, cfg, report, manifest)
-    train = subsample(train, cfg.train_limit, cfg.seed)
+    if apply_limit:
+        train = subsample(train, cfg.train_limit, cfg.seed)
     if report.group_fallback_to_id:
         report.warn(
             f"{report.group_fallback_to_id} paire(s) sans champ de groupe {cfg.group_by} : chacune forme son propre groupe."

@@ -27,6 +27,7 @@ def test_train_evaluate_merge_generate(tmp_path):
         f"training.output_dir={run_dir}",
         "training.max_steps=4",
         "training.eval_steps=2",
+        "training.logging_steps=1",
         "training.per_device_train_batch_size=2",
         "training.gradient_accumulation_steps=1",
         "training.learning_rate=1e-3",
@@ -50,6 +51,9 @@ def test_train_evaluate_merge_generate(tmp_path):
     assert manifest["eval_ids"] and not set(manifest["train_groups"]) & set(manifest["eval_groups"])
     train_metrics = json.loads((run_dir / "metrics_entrainement.json").read_text())
     assert "eval_loss" in train_metrics["eval"] and "eval_score_qualite" in train_metrics["eval"]
+    progress = json.loads((run_dir / "progress.json").read_text())
+    assert progress["status"] == "terminé" and progress["step"] == progress["max_steps"] == 4
+    assert any("loss" in h for h in progress["history"]) and any("eval_score_qualite" in h for h in progress["history"])
     final = json.loads((run_dir / "eval" / "metrics.json").read_text())
     assert final["n"] == len(manifest["eval_ids"]) and "score_qualite" in final
     assert (run_dir / "eval" / "rapport.md").exists()
@@ -65,6 +69,31 @@ def test_train_evaluate_merge_generate(tmp_path):
     merged = tmp_path / "merged"
     assert main(["merge", "--adapter", str(adapter), "--out", str(merged), "--device", "cpu"]) == 0
     assert (merged / "config.json").exists() and (merged / "gherkin_ft.json").exists()
+
+    # Limite du nombre de paires et arrêt propre demandé dès le premier pas : adaptateur enregistré, statut « arrêté ».
+    run2 = tmp_path / "run2"
+    run2.mkdir()
+    (run2 / "STOP").touch()  # un STOP antérieur au lancement est ignoré...
+    cfg.training.output_dir = str(run2)
+    cfg.data.train_limit = 2
+    cfg.training.max_steps = 50
+
+    from gherkin_ft import progress as progress_mod
+
+    original_init = progress_mod.ProgressWriter.__init__
+
+    def init_then_stop(self, *a, **kw):  # ... puis on demande l'arrêt juste après le démarrage
+        original_init(self, *a, **kw)
+        self.stop_path.touch()
+
+    progress_mod.ProgressWriter.__init__ = init_then_stop
+    try:
+        run_training(cfg)
+    finally:
+        progress_mod.ProgressWriter.__init__ = original_init
+    p2 = json.loads((run2 / "progress.json").read_text())
+    assert p2["status"] == "arrêté" and p2["step"] == 1 and p2["train_pairs"] == 2
+    assert (run2 / "adapter" / "adapter_config.json").exists() and not (run2 / "eval").exists()
 
     # Le modèle aléatoire n'écrit pas de Gherkin valide : code de retour 1 attendu, mais sans erreur.
     out_file = tmp_path / "sortie.feature"

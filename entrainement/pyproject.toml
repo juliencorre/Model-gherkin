@@ -31,6 +31,9 @@ gherkin-ft = "gherkin_ft.cli:main"
 [tool.setuptools.packages.find]
 include = ["gherkin_ft*"]
 
+[tool.setuptools.package-data]
+gherkin_ft = ["static/*.html"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = ["slow: entraînement miniature de bout en bout (CPU, ~1 min)"]

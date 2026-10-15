@@ -19,7 +19,8 @@ VISION_MODULES = ("vision_tower", "multi_modal_projector")
 
 def resolve_dtype(name: str) -> torch.dtype:
     if not torch.cuda.is_available():
-        return torch.float32
+        # Sur CPU, bf16 divise la mémoire par deux (rapide sur les CPU AMX / AVX512-BF16) ; sinon float32.
+        return torch.bfloat16 if name in ("bfloat16", "bf16") else torch.float32
     if name in ("bfloat16", "bf16", "auto"):
         if torch.cuda.is_bf16_supported():
             return torch.bfloat16

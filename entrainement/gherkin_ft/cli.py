@@ -148,6 +148,14 @@ def cmd_generate(args) -> int:
     return 0 if a.syntax_ok else 1
 
 
+def cmd_ihm(args) -> int:
+    from .ihm import serve
+
+    serve(host=args.host, port=args.port, runs_dir=args.runs_dir, configs_dir=args.configs_dir,
+          open_browser=not args.no_browser)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="gherkin-ft", description="Affinage de Ministral 3 3B pour écrire du Gherkin")
     parser.add_argument("--verbose", "-v", action="store_true")
@@ -189,6 +197,14 @@ def build_parser() -> argparse.ArgumentParser:
             p.add_argument("--out", "-o", help="Fichier .feature de sortie (défaut : sortie standard)")
             p.add_argument("--retries", type=int, default=2, help="Nouveaux essais si la sortie est invalide")
             p.add_argument("--temperature", type=float, default=0.3, help="Température des nouveaux essais")
+
+    p = sub.add_parser("ihm", help="Interface web locale : paramètres, lancement et suivi des entraînements")
+    p.add_argument("--host", default="127.0.0.1", help="Adresse d'écoute (défaut : 127.0.0.1, machine locale)")
+    p.add_argument("--port", type=int, default=7860)
+    p.add_argument("--runs-dir", default="entrainement/runs", help="Dossier des runs")
+    p.add_argument("--configs-dir", help="Dossier des configurations de départ (défaut : entrainement/configs)")
+    p.add_argument("--no-browser", action="store_true", help="Ne pas ouvrir le navigateur")
+    p.set_defaults(func=cmd_ihm)
 
     p = sub.add_parser("compare", help="Compare plusieurs metrics.json")
     p.add_argument("metrics", nargs="+")

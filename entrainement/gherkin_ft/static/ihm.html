@@ -1,0 +1,1041 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Entraînement Gherkin</title>
+<link rel="icon" href="data:,">
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7;
+  --surface: #fcfcfb;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #898781;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --border: rgba(11, 11, 11, 0.10);
+  --accent: #2a78d6;
+  --accent-ink: #ffffff;
+  --accent-wash: rgba(42, 120, 214, 0.10);
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --good: #0ca30c;
+  --good-ink: #006300;
+  --serious: #ec835a;
+  --critical: #d03b3b;
+  --warn-wash: rgba(250, 178, 25, 0.16);
+  --error-wash: rgba(208, 59, 59, 0.10);
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --ink: #f0efec;
+    --ink-2: #c3c2b7;
+    --muted: #898781;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --border: rgba(255, 255, 255, 0.10);
+    --accent: #3987e5;
+    --accent-wash: rgba(57, 135, 229, 0.16);
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --good-ink: #0ca30c;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d;
+  --surface: #1a1a19;
+  --ink: #f0efec;
+  --ink-2: #c3c2b7;
+  --muted: #898781;
+  --grid: #2c2c2a;
+  --axis: #383835;
+  --border: rgba(255, 255, 255, 0.10);
+  --accent: #3987e5;
+  --accent-wash: rgba(57, 135, 229, 0.16);
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --good-ink: #0ca30c;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--page); color: var(--ink);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+header {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  padding: 14px 24px; border-bottom: 1px solid var(--border); background: var(--surface);
+}
+header h1 { font-size: 16px; margin: 0; font-weight: 600; }
+header .sub { color: var(--muted); font-size: 13px; }
+header .spacer { flex: 1; }
+.gpu { color: var(--ink-2); font-size: 13px; font-variant-numeric: tabular-nums; }
+nav { display: flex; gap: 4px; padding: 0 24px; border-bottom: 1px solid var(--border); background: var(--surface); }
+nav button {
+  border: 0; background: none; color: var(--ink-2); font: inherit; padding: 10px 12px; cursor: pointer;
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+}
+nav button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); font-weight: 600; }
+main { max-width: 1180px; margin: 0 auto; padding: 20px 24px 96px; }
+section[hidden] { display: none; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; margin-bottom: 16px; }
+.card h2 { font-size: 14px; margin: 0 0 12px; font-weight: 600; }
+.card h2 .hint { font-weight: 400; color: var(--muted); margin-left: 6px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px 16px; }
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+@media (max-width: 860px) { .cols { grid-template-columns: 1fr; } }
+.f { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--ink-2); }
+.f.wide { grid-column: 1 / -1; }
+.f small { color: var(--muted); font-size: 12px; }
+input, select, textarea {
+  font: inherit; color: var(--ink); background: var(--page); border: 1px solid var(--border);
+  border-radius: 7px; padding: 7px 9px; min-width: 0;
+}
+textarea { resize: vertical; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }
+input:focus, select:focus, textarea:focus, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+label.check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+button.btn {
+  font: inherit; border: 1px solid var(--border); background: var(--surface); color: var(--ink);
+  border-radius: 7px; padding: 7px 14px; cursor: pointer;
+}
+button.btn:hover { background: var(--accent-wash); }
+button.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+button.btn.primary:hover { filter: brightness(1.08); }
+button.btn.danger { color: var(--critical); }
+button.btn:disabled { opacity: .5; cursor: default; }
+.chip { font: inherit; font-size: 12px; border: 1px solid var(--border); background: var(--page); color: var(--ink-2); border-radius: 99px; padding: 3px 10px; cursor: pointer; }
+.chip[aria-pressed="true"] { border-color: var(--accent); color: var(--ink); background: var(--accent-wash); }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 7px; overflow: hidden; }
+.seg button { font: inherit; border: 0; background: var(--page); color: var(--ink-2); padding: 7px 12px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--accent-wash); color: var(--ink); font-weight: 600; }
+.actions {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; background: var(--surface); border-top: 1px solid var(--border);
+  padding: 12px 24px; display: flex; gap: 12px; align-items: center; justify-content: flex-end; flex-wrap: wrap;
+}
+.actions .estimate { margin-right: auto; color: var(--ink-2); font-size: 13px; }
+.actions[hidden] { display: none; }
+.msg { border-radius: 8px; padding: 9px 12px; margin-bottom: 12px; font-size: 13px; }
+.msg.error { background: var(--error-wash); }
+.msg.warn { background: var(--warn-wash); }
+.msg[hidden] { display: none; }
+.stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; }
+.stat .label { color: var(--ink-2); font-size: 12.5px; }
+.stat .value { font-size: 22px; font-weight: 600; margin-top: 2px; }
+.stat .detail { color: var(--muted); font-size: 12px; }
+.preview .big { display: flex; gap: 28px; flex-wrap: wrap; margin-bottom: 10px; }
+.preview .big div { display: flex; flex-direction: column; }
+.preview .big b { font-size: 22px; font-weight: 600; }
+.preview .big span { color: var(--ink-2); font-size: 12.5px; }
+.groups { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
+.groups span { font-size: 12px; border-radius: 99px; padding: 2px 9px; background: var(--page); border: 1px solid var(--border); color: var(--ink-2); }
+.muted { color: var(--muted); }
+.pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; padding: 3px 10px; border-radius: 99px; border: 1px solid var(--border); color: var(--ink); background: var(--page); white-space: nowrap; }
+.pill i { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); display: inline-block; font-style: normal; }
+.pill.run i { background: var(--accent); animation: pulse 1.4s ease-in-out infinite; }
+.pill.ok i { background: var(--good); }
+.pill.err i { background: var(--critical); }
+.pill.int i { background: var(--serious); }
+@keyframes pulse { 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .pill.run i { animation: none; } }
+.progress { height: 10px; border-radius: 99px; background: var(--accent-wash); overflow: hidden; margin: 10px 0 8px; }
+.progress div { height: 100%; background: var(--accent); border-radius: 99px; transition: width .4s; }
+.kv { display: flex; gap: 22px; flex-wrap: wrap; color: var(--ink-2); font-size: 13px; font-variant-numeric: tabular-nums; }
+.kv b { color: var(--ink); font-weight: 600; }
+.chart { position: relative; }
+.chart svg { display: block; width: 100%; overflow: visible; }
+.chart .axis text, .chart .lbl { fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.chart .endlbl { fill: var(--ink-2); font-size: 11.5px; }
+.legend { display: flex; gap: 16px; font-size: 12.5px; color: var(--ink-2); margin-bottom: 6px; flex-wrap: wrap; }
+.legend span::before { content: ""; display: inline-block; width: 14px; height: 2px; vertical-align: middle; margin-right: 6px; background: var(--c); border-radius: 2px; }
+.tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px; font-size: 12px; box-shadow: 0 4px 16px rgba(0,0,0,.12); white-space: nowrap; z-index: 3; }
+.tip .t { color: var(--muted); margin-bottom: 3px; }
+.tip .r { display: flex; align-items: center; gap: 7px; }
+.tip .r b { font-variant-numeric: tabular-nums; }
+.tip .r i { width: 12px; height: 2px; background: var(--c); display: inline-block; border-radius: 2px; }
+.tip .r span { color: var(--ink-2); }
+.empty { color: var(--muted); padding: 28px 0; text-align: center; }
+pre.log { background: var(--page); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; max-height: 320px; overflow: auto; font-size: 12px; line-height: 1.4; margin: 0; white-space: pre-wrap; word-break: break-word; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--grid); vertical-align: middle; }
+th { color: var(--ink-2); font-weight: 600; font-size: 12.5px; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.table-wrap { overflow-x: auto; }
+details summary { cursor: pointer; color: var(--ink-2); font-size: 13px; margin: 6px 0; }
+.meter { height: 6px; border-radius: 99px; background: var(--accent-wash); overflow: hidden; margin-top: 6px; }
+.meter div { height: 100%; background: var(--accent); }
+a { color: var(--accent); }
+@media (max-width: 600px) {
+  header, nav, main, .actions { padding-left: 16px; padding-right: 16px; }
+  .actions { gap: 8px; padding-top: 8px; padding-bottom: 8px; }
+  .actions .estimate { flex-basis: 100%; font-size: 12px; }
+  .actions .btn { padding: 6px 10px; }
+}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Entraînement Gherkin</h1>
+    <div class="sub">Ministral 3 3B Instruct · LoRA / QLoRA</div>
+  </div>
+  <span id="activePill" class="pill"><i></i><span>Aucun entraînement</span></span>
+  <div class="spacer"></div>
+  <div class="gpu" id="gpu">GPU : —</div>
+</header>
+<nav role="tablist">
+  <button role="tab" data-tab="nouveau" aria-selected="true">Nouvel entraînement</button>
+  <button role="tab" data-tab="suivi" aria-selected="false">Suivi</button>
+  <button role="tab" data-tab="historique" aria-selected="false">Historique</button>
+</nav>
+
+<main>
+<div id="globalMsg" class="msg error" hidden></div>
+
+<!-- ============ Nouvel entraînement ============ -->
+<section id="tab-nouveau">
+  <div class="card">
+    <div class="grid">
+      <label class="f">Partir de
+        <select id="baseConfig"></select>
+        <small>Configuration de départ : les champs ci-dessous sont pré-remplis.</small>
+      </label>
+      <label class="f">Nom du run
+        <input id="runName" autocomplete="off" spellcheck="false">
+        <small>Dossier du run : lettres, chiffres, « . », « _ », « - ».</small>
+      </label>
+    </div>
+  </div>
+
+  <div class="cols">
+    <div>
+      <div class="card">
+        <h2>Données</h2>
+        <div class="grid">
+          <label class="f wide">Fichiers de paires (un motif par ligne)
+            <textarea rows="2" data-k="data.train_files" data-t="lines" spellcheck="false"></textarea>
+          </label>
+          <label class="f wide">Métadonnées jointes par id (domaine, pour le découpage)
+            <textarea rows="2" data-k="data.metadata_files" data-t="lines" spellcheck="false"></textarea>
+          </label>
+          <div class="f wide">
+            <span>Nombre de paires d'entraînement</span>
+            <div class="row">
+              <input id="trainLimit" type="number" min="1" step="1" placeholder="toutes" style="width: 130px" data-k="data.train_limit" data-t="optint">
+              <span id="limitChips" class="row">
+                <button type="button" class="chip" data-v="250">250</button>
+                <button type="button" class="chip" data-v="500">500</button>
+                <button type="button" class="chip" data-v="1000">1 000</button>
+                <button type="button" class="chip" data-v="2000">2 000</button>
+                <button type="button" class="chip" data-v="">Toutes</button>
+              </span>
+            </div>
+            <small id="limitHint">Vide = toutes les paires disponibles. Tirage aléatoire reproductible (graine des données).</small>
+          </div>
+          <label class="f">Part réservée à l'évaluation (%)
+            <input type="number" min="0" max="50" step="1" data-k="data.eval_ratio" data-t="pct">
+            <small>Découpage par dispositif, sans fuite.</small>
+          </label>
+          <label class="f">Jeu d'évaluation
+            <select id="manifest" data-k="data.split_manifest" data-t="optstr"></select>
+            <small>Reprendre celui d'un run permet de comparer des runs.</small>
+          </label>
+          <label class="f wide">Fichiers d'évaluation dédiés (optionnel, un par ligne)
+            <textarea rows="1" data-k="data.eval_files" data-t="lines" spellcheck="false"></textarea>
+          </label>
+          <label class="f">Longueur maximale (tokens)
+            <input type="number" min="256" step="64" data-k="data.max_length" data-t="int">
+            <small>Les paires plus longues sont écartées.</small>
+          </label>
+          <label class="f">Score minimal des références
+            <input type="number" min="0" max="1" step="0.05" data-k="data.min_reference_score" data-t="float">
+            <small>0 = aucune exclusion.</small>
+          </label>
+          <label class="check"><input type="checkbox" data-k="data.require_valid_gherkin" data-t="bool"> Écarter les Gherkin invalides</label>
+          <label class="f">Graine des données
+            <input type="number" step="1" data-k="data.seed" data-t="int">
+          </label>
+        </div>
+        <div class="row" style="margin-top: 12px">
+          <button type="button" class="btn" id="btnPreview">Analyser les données</button>
+          <span class="muted" id="previewStatus"></span>
+        </div>
+        <div id="preview" class="preview" style="margin-top: 12px" hidden></div>
+      </div>
+
+      <div class="card">
+        <h2>Modèle</h2>
+        <div class="grid">
+          <label class="f wide">Modèle de base
+            <input data-k="model.name_or_path" data-t="str" spellcheck="false">
+          </label>
+          <div class="f wide">
+            <span>Mode</span>
+            <div class="seg" id="modeSeg">
+              <button type="button" data-v="false">LoRA bf16 (recommandé)</button>
+              <button type="button" data-v="true">QLoRA 4 bits</button>
+            </div>
+            <small>QLoRA : moins de mémoire (~3 Go de poids au lieu de ~8), un peu moins précis.</small>
+          </div>
+          <label class="f">Rang LoRA (r)
+            <input type="number" min="1" step="1" data-k="lora.r" data-t="int">
+          </label>
+          <label class="f">Alpha
+            <input type="number" min="1" step="1" data-k="lora.alpha" data-t="int">
+          </label>
+          <label class="f">Dropout
+            <input type="number" min="0" max="0.5" step="0.01" data-k="lora.dropout" data-t="float">
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h2>Entraînement</h2>
+        <div class="grid">
+          <label class="f">Époques
+            <input type="number" min="0.1" step="0.5" data-k="training.num_train_epochs" data-t="float">
+          </label>
+          <label class="f">Pas maximum
+            <input type="number" min="1" step="1" placeholder="selon les époques" data-k="training.max_steps" data-t="maxsteps">
+            <small>Vide = selon le nombre d'époques.</small>
+          </label>
+          <label class="f">Taux d'apprentissage
+            <input type="text" inputmode="decimal" data-k="training.learning_rate" data-t="float">
+            <small>Ex. 1e-4 (LoRA), 2e-4 (QLoRA).</small>
+          </label>
+          <label class="f">Planificateur
+            <select data-k="training.lr_scheduler_type" data-t="str">
+              <option value="cosine">Cosinus</option>
+              <option value="linear">Linéaire</option>
+              <option value="constant_with_warmup">Constant</option>
+            </select>
+          </label>
+          <label class="f">Exemples par pas (batch)
+            <input type="number" min="1" step="1" data-k="training.per_device_train_batch_size" data-t="int">
+          </label>
+          <label class="f">Accumulation de gradient
+            <input type="number" min="1" step="1" data-k="training.gradient_accumulation_steps" data-t="int">
+            <small id="effBatch"></small>
+          </label>
+          <label class="f">Échauffement (%)
+            <input type="number" min="0" max="50" step="1" data-k="training.warmup_ratio" data-t="pct">
+          </label>
+          <label class="f">Optimiseur
+            <select data-k="training.optim" data-t="str" id="optim">
+              <option value="adamw_torch_fused">AdamW (bf16)</option>
+              <option value="paged_adamw_8bit">AdamW 8 bits paginé (QLoRA)</option>
+              <option value="adamw_torch">AdamW standard</option>
+            </select>
+          </label>
+          <label class="f">Évaluer tous les N pas
+            <input type="number" min="1" step="1" data-k="training.eval_steps" data-t="int">
+            <small>Un checkpoint est enregistré à chaque évaluation.</small>
+          </label>
+          <label class="f">Journaliser tous les N pas
+            <input type="number" min="1" step="1" data-k="training.logging_steps" data-t="int">
+            <small>Fréquence des points de la courbe de perte.</small>
+          </label>
+          <label class="f">Arrêt anticipé
+            <input type="number" min="0" step="1" data-k="training.early_stopping_patience" data-t="optint0">
+            <small>Évaluations sans progrès avant arrêt (0 = jamais).</small>
+          </label>
+          <label class="f wide">Garder le meilleur modèle selon
+            <select data-k="training.metric_for_best_model" data-t="str">
+              <option value="eval_loss">Perte d'évaluation (plus basse = mieux)</option>
+              <option value="eval_score_qualite">Score qualité de la sonde (plus haut = mieux)</option>
+            </select>
+          </label>
+          <label class="check"><input type="checkbox" data-k="training.gradient_checkpointing" data-t="bool"> Gradient checkpointing (économise la mémoire)</label>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Évaluation</h2>
+        <div class="grid">
+          <label class="f">Sonde qualité (exemples)
+            <input type="number" min="0" step="1" data-k="eval.probe_samples" data-t="int">
+            <small>Gherkin générés à chaque évaluation (0 = désactivée).</small>
+          </label>
+          <label class="f">Tokens de la sonde
+            <input type="number" min="16" step="64" data-k="eval.probe_max_new_tokens" data-t="int">
+            <small>Longueur maximale des sorties de la sonde.</small>
+          </label>
+          <label class="f">Tokens générés au maximum
+            <input type="number" min="64" step="64" data-k="eval.max_new_tokens" data-t="int">
+          </label>
+          <label class="check"><input type="checkbox" data-k="eval.run_after_training" data-t="bool"> Évaluation complète après l'entraînement</label>
+          <label class="f">Limiter l'évaluation finale à N paires
+            <input type="number" min="1" step="1" placeholder="toutes" data-k="eval.max_samples" data-t="optint">
+          </label>
+        </div>
+        <details style="margin-top: 10px">
+          <summary>Prompt système</summary>
+          <textarea rows="12" style="width: 100%" data-k="prompt.system_prompt" data-t="str"></textarea>
+        </details>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ Suivi ============ -->
+<section id="tab-suivi" hidden>
+  <div id="followEmpty" class="card empty">Aucun entraînement à suivre. Paramétrez-en un dans l'onglet « Nouvel entraînement ».</div>
+  <div id="follow" hidden>
+    <div class="card">
+      <div class="row" style="justify-content: space-between">
+        <div class="row">
+          <h2 style="margin: 0" id="fName"></h2>
+          <span id="fStatus" class="pill"><i></i><span></span></span>
+        </div>
+        <div class="row">
+          <button class="btn" id="btnStop" hidden>Arrêter et enregistrer</button>
+          <button class="btn danger" id="btnKill" hidden>Forcer l'arrêt</button>
+        </div>
+      </div>
+      <div class="muted" id="fPhase" style="margin-top: 6px"></div>
+      <div class="progress" role="progressbar" aria-label="Avancement" id="fBarWrap"><div id="fBar" style="width: 0%"></div></div>
+      <div class="kv" id="fKv"></div>
+      <div id="fError" class="msg error" style="margin-top: 12px" hidden></div>
+    </div>
+    <div class="stats" id="fStats"></div>
+    <div class="cols">
+      <div class="card"><h2>Perte <span class="hint">par pas d'optimisation</span></h2><div id="chartLoss" class="chart"></div></div>
+      <div class="card"><h2>Sonde qualité <span class="hint">sur les Gherkin générés (0 à 1)</span></h2><div id="chartQuality" class="chart"></div></div>
+    </div>
+    <div class="card">
+      <details>
+        <summary>Valeurs journalisées</summary>
+        <div class="table-wrap" id="fTable"></div>
+      </details>
+    </div>
+    <div class="card" id="fResults" hidden>
+      <h2>Évaluation finale</h2>
+      <div class="table-wrap" id="fResultsTable"></div>
+    </div>
+    <div class="card">
+      <h2>Journal <span class="hint" id="fPath"></span></h2>
+      <pre class="log" id="fLog"></pre>
+    </div>
+  </div>
+</section>
+
+<!-- ============ Historique ============ -->
+<section id="tab-historique" hidden>
+  <div class="card">
+    <h2>Runs <span class="hint" id="runsDir"></span></h2>
+    <div class="table-wrap" id="runsTable"></div>
+  </div>
+</section>
+</main>
+
+<div class="actions" id="actions">
+  <span class="estimate" id="estimate">Analysez les données pour estimer la durée en pas.</span>
+  <button class="btn" id="btnPreview2">Analyser les données</button>
+  <button class="btn primary" id="btnLaunch">Lancer l'entraînement</button>
+</div>
+
+<script>
+"use strict";
+const TOKEN = new URLSearchParams(location.search).get("jeton") || "";
+const state = {
+  config: null,         // configuration chargée (les champs hors formulaire sont conservés)
+  preview: null,
+  runsDir: "",
+  runs: [],
+  active: null,
+  follow: null,         // run affiché dans « Suivi »
+  stopRequested: {},
+  nameEdited: false,
+  tab: "nouveau",
+};
+
+// ---------- utilitaires ----------
+const $ = (sel, root = document) => root.querySelector(sel);
+const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+function el(tag, attrs = {}, ...children) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "class") e.className = v;
+    else if (k === "text") e.textContent = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+    else if (v !== undefined && v !== null && v !== false) e.setAttribute(k, v === true ? "" : v);
+  }
+  for (const c of children) if (c !== null && c !== undefined) e.append(c instanceof Node ? c : document.createTextNode(String(c)));
+  return e;
+}
+const nf = (v, d = 0) => v === null || v === undefined || Number.isNaN(v) ? "—" :
+  Number(v).toLocaleString("fr-FR", { minimumFractionDigits: d, maximumFractionDigits: d });
+const nf3 = v => v === null || v === undefined ? "—" : Number(v).toLocaleString("fr-FR", { maximumFractionDigits: 3 });
+const pct = v => v === null || v === undefined ? "—" : nf(v * 100, 0) + " %";
+function duration(s) {
+  if (s === null || s === undefined || !isFinite(s)) return "—";
+  s = Math.round(s);
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+  if (h) return `${h} h ${String(m).padStart(2, "0")} min`;
+  if (m) return `${m} min ${String(sec).padStart(2, "0")} s`;
+  return `${sec} s`;
+}
+const dateFr = t => t ? new Date(t * 1000).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" }) : "—";
+
+async function api(path, body) {
+  const opts = { headers: {} };
+  if (TOKEN) opts.headers["X-Jeton"] = TOKEN;
+  if (body !== undefined) {
+    opts.method = "POST";
+    opts.headers["Content-Type"] = "application/json";
+    opts.headers["X-Gherkin-FT"] = "1";
+    opts.body = JSON.stringify(body);
+  }
+  const res = await fetch(path, opts);
+  let data = {};
+  try { data = await res.json(); } catch (e) { /* réponse vide */ }
+  if (!res.ok) throw new Error(data.erreur || `Erreur ${res.status}`);
+  return data;
+}
+function showMsg(text, kind = "error") {
+  const m = $("#globalMsg");
+  m.className = "msg " + kind;
+  m.textContent = text;
+  m.hidden = !text;
+  if (text) window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+// ---------- onglets ----------
+function selectTab(name) {
+  state.tab = name;
+  for (const b of $$("nav button")) b.setAttribute("aria-selected", b.dataset.tab === name ? "true" : "false");
+  for (const s of $$("main > section")) s.hidden = s.id !== "tab-" + name;
+  $("#actions").hidden = name !== "nouveau";
+  if (name === "historique") refreshRuns();
+  if (name === "suivi") refreshFollow();
+}
+for (const b of $$("nav button")) b.addEventListener("click", () => selectTab(b.dataset.tab));
+
+// ---------- formulaire <-> configuration ----------
+const getPath = (o, path) => path.split(".").reduce((x, k) => (x == null ? undefined : x[k]), o);
+function setPath(o, path, v) {
+  const ks = path.split(".");
+  let x = o;
+  for (const k of ks.slice(0, -1)) x = x[k] ??= {};
+  x[ks[ks.length - 1]] = v;
+}
+function fillForm(cfg) {
+  state.config = JSON.parse(JSON.stringify(cfg));
+  for (const inp of $$("[data-k]")) {
+    const v = getPath(cfg, inp.dataset.k), t = inp.dataset.t;
+    if (t === "bool") inp.checked = !!v;
+    else if (t === "lines") inp.value = (v || []).join("\n");
+    else if (t === "pct") inp.value = v === null || v === undefined ? "" : Math.round(v * 1000) / 10;
+    else if (t === "maxsteps") inp.value = v && v > 0 ? v : "";
+    else if (t === "optint0") inp.value = v || 0;
+    else if (t === "optstr") { ensureOption(inp, v); inp.value = v || ""; }
+    else inp.value = v === null || v === undefined ? "" : v;
+  }
+  updateMode();
+  updateChips();
+  updateDerived();
+}
+function ensureOption(select, value) {
+  if (value && !Array.from(select.options).some(o => o.value === value)) select.append(el("option", { value, text: value }));
+}
+function readForm() {
+  const cfg = JSON.parse(JSON.stringify(state.config));
+  const errors = [];
+  for (const inp of $$("[data-k]")) {
+    const t = inp.dataset.t, raw = inp.value.trim();
+    const label = ((inp.closest("label, .f")?.textContent || "").trim().split("\n")[0].trim()) || inp.dataset.k;
+    let v;
+    if (t === "bool") v = inp.checked;
+    else if (t === "lines") v = raw.split("\n").map(s => s.trim()).filter(Boolean);
+    else if (t === "str") v = inp.value;
+    else if (t === "optstr") v = raw || null;
+    else if (t === "optint" || t === "maxsteps" || t === "optint0") {
+      if (!raw || (t === "optint0" && raw === "0")) v = t === "maxsteps" ? -1 : null;
+      else { v = Number(raw); if (!Number.isInteger(v) || v < 1) errors.push(`${label} : entier positif attendu`); }
+    } else {
+      v = Number(raw.replace(",", "."));
+      if (raw === "" || !isFinite(v)) errors.push(`${label} : nombre attendu`);
+      else if (t === "int" && !Number.isInteger(v)) errors.push(`${label} : entier attendu`);
+      if (t === "pct") v = v / 100;
+    }
+    setPath(cfg, inp.dataset.k, v);
+  }
+  if (!cfg.data.train_files.length) errors.push("Indiquez au moins un fichier de paires.");
+  if (cfg.training.metric_for_best_model === "eval_score_qualite" && !cfg.eval.probe_samples)
+    errors.push("Le choix du meilleur modèle par score qualité demande une sonde qualité (exemples > 0).");
+  return { cfg, errors };
+}
+
+// Mode LoRA / QLoRA
+function updateMode() {
+  const q = !!getPath(state.config, "model.load_in_4bit");
+  for (const b of $$("#modeSeg button")) b.setAttribute("aria-pressed", String(b.dataset.v === String(q)));
+}
+for (const b of $$("#modeSeg button")) b.addEventListener("click", () => {
+  const q = b.dataset.v === "true";
+  setPath(state.config, "model.load_in_4bit", q);
+  const optim = $("#optim");
+  if (q && optim.value === "adamw_torch_fused") optim.value = "paged_adamw_8bit";
+  if (!q && optim.value === "paged_adamw_8bit") optim.value = "adamw_torch_fused";
+  updateMode();
+});
+
+// Nombre de paires : raccourcis
+function updateChips() {
+  const v = $("#trainLimit").value.trim();
+  for (const c of $$("#limitChips .chip")) c.setAttribute("aria-pressed", String(c.dataset.v === v));
+}
+for (const c of $$("#limitChips .chip")) c.addEventListener("click", () => {
+  $("#trainLimit").value = c.dataset.v;
+  updateChips(); updateDerived(); suggestName();
+});
+$("#trainLimit").addEventListener("input", () => { updateChips(); updateDerived(); suggestName(); });
+for (const inp of $$("[data-k^='training.'], [data-k='data.train_limit']")) inp.addEventListener("input", updateDerived);
+
+function usedTrainPairs() {
+  if (!state.preview) return null;
+  const lim = Number($("#trainLimit").value) || 0;
+  return lim ? Math.min(lim, state.preview.disponibles_train) : state.preview.disponibles_train;
+}
+function updateDerived() {
+  const bs = Number($("[data-k='training.per_device_train_batch_size']").value) || 0;
+  const ga = Number($("[data-k='training.gradient_accumulation_steps']").value) || 0;
+  $("#effBatch").textContent = bs && ga ? `Batch effectif : ${bs * ga} exemples par pas.` : "";
+  const n = usedTrainPairs();
+  const hint = $("#limitHint");
+  if (state.preview) {
+    hint.textContent = `${nf(state.preview.disponibles_train)} paires disponibles pour l'entraînement ` +
+      `(avant le filtre de longueur). Vide = toutes. Tirage aléatoire reproductible.`;
+  }
+  const est = $("#estimate");
+  if (n === null || !bs || !ga) { est.textContent = "Analysez les données pour estimer la durée en pas."; return; }
+  const maxSteps = Number($("[data-k='training.max_steps']").value) || 0;
+  const epochs = Number($("[data-k='training.num_train_epochs']").value.replace(",", ".")) || 0;
+  const perEpoch = Math.ceil(n / (bs * ga));
+  const steps = maxSteps > 0 ? maxSteps : Math.ceil(perEpoch * epochs);
+  est.textContent = `${nf(n)} paires d'entraînement · ${nf(state.preview.eval)} d'évaluation · ` +
+    `≈ ${nf(steps)} pas d'optimisation (${nf(perEpoch)} par époque)`;
+}
+
+// Nom du run proposé automatiquement tant qu'il n'a pas été modifié à la main
+function suggestName() {
+  if (state.nameEdited) return;
+  const d = new Date(), p = x => String(x).padStart(2, "0");
+  const lim = $("#trainLimit").value.trim();
+  $("#runName").value = `n${lim || "tout"}-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`;
+}
+$("#runName").addEventListener("input", () => { state.nameEdited = true; });
+
+// ---------- aperçu des données ----------
+async function preview() {
+  const { cfg, errors } = readForm();
+  if (errors.length) return showMsg(errors.join(" · "));
+  showMsg("");
+  $("#previewStatus").textContent = "Analyse…";
+  try {
+    const p = await api("/api/apercu", { config: cfg });
+    state.preview = p;
+    renderPreview(p);
+    $("#previewStatus").textContent = "";
+  } catch (e) {
+    state.preview = null;
+    $("#preview").hidden = true;
+    $("#previewStatus").textContent = "";
+    showMsg("Analyse impossible : " + e.message);
+  }
+  updateDerived();
+}
+function renderPreview(p) {
+  const box = $("#preview");
+  box.replaceChildren();
+  const used = usedTrainPairs();
+  box.append(el("div", { class: "big" },
+    el("div", {}, el("b", { text: nf(p.disponibles_train) }), el("span", { text: "disponibles pour l'entraînement" })),
+    el("div", {}, el("b", { text: nf(used) }), el("span", { text: "utilisées" })),
+    el("div", {}, el("b", { text: nf(p.eval) }), el("span", { text: "pour l'évaluation" })),
+    el("div", {}, el("b", { text: nf(p.lues) }), el("span", { text: `lues dans ${p.fichiers.length} fichier(s)` })),
+  ));
+  const groups = (title, g) => {
+    const names = Object.entries(g);
+    if (!names.length) return null;
+    return el("div", {}, el("div", { class: "muted", text: title }),
+      el("div", { class: "groups" }, ...names.map(([k, v]) => el("span", { text: `${k.replace(/^[a-z]+:/, "")} · ${v}` }))));
+  };
+  box.append(groups("Groupes d'entraînement", p.groupes_train) || "", groups(`Groupes d'évaluation (découpage ${p.methode})`, p.groupes_eval) || "");
+  const rejets = Object.entries(p.rejets);
+  if (rejets.length) box.append(el("div", { class: "muted", text: "Écartées : " + rejets.map(([k, v]) => `${v} (${k})`).join(", ") }));
+  for (const w of p.avertissements) box.append(el("div", { class: "msg warn", style: "margin: 8px 0 0", text: w }));
+  box.append(el("div", { class: "muted", style: "margin-top: 6px", text: "Le filtre de longueur (tokens) s'applique au lancement." }));
+  box.hidden = false;
+}
+$("#btnPreview").addEventListener("click", preview);
+$("#btnPreview2").addEventListener("click", preview);
+
+// ---------- lancement ----------
+async function launch() {
+  const { cfg, errors } = readForm();
+  const name = $("#runName").value.trim();
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(name)) errors.push("Nom du run invalide.");
+  if (errors.length) return showMsg(errors.join(" · "));
+  $("#btnLaunch").disabled = true;
+  try {
+    await api("/api/lancer", { config: cfg, nom: name, reprendre: false });
+    showMsg("");
+    state.follow = name;
+    state.nameEdited = false;
+    suggestName();
+    selectTab("suivi");
+    refreshState();
+  } catch (e) {
+    showMsg("Lancement impossible : " + e.message);
+  } finally {
+    $("#btnLaunch").disabled = false;
+  }
+}
+$("#btnLaunch").addEventListener("click", launch);
+
+async function loadBaseConfig() {
+  const v = $("#baseConfig").value;
+  try {
+    const q = v.startsWith("run:") ? "run=" + encodeURIComponent(v.slice(4)) : (v ? "nom=" + encodeURIComponent(v) : "");
+    const { config } = await api("/api/config" + (q ? "?" + q : ""));
+    fillForm(config);
+    state.preview = null;
+    $("#preview").hidden = true;
+    updateDerived();
+  } catch (e) { showMsg(e.message); }
+}
+$("#baseConfig").addEventListener("change", loadBaseConfig);
+
+// ---------- statut ----------
+const STATUS = {
+  "en cours": ["run", "En cours"], "terminé": ["ok", "Terminé"], "arrêté": ["", "Arrêté (adaptateur enregistré)"],
+  "erreur": ["err", "Erreur"], "interrompu": ["int", "Interrompu"], "inconnu": ["", "Inconnu"],
+};
+function setPill(pill, status, text) {
+  const [cls, label] = STATUS[status] || ["", status];
+  pill.className = "pill " + cls;
+  pill.querySelector("span").textContent = text || label;
+}
+
+async function refreshState() {
+  try {
+    const s = await api("/api/etat");
+    state.active = s.actif;
+    state.runsDir = s.dossier_runs;
+    setPill($("#activePill"), s.actif ? "en cours" : "inconnu", s.actif ? `En cours : ${s.actif}` : "Aucun entraînement");
+    const gpu = s.gpu && s.gpu[0];
+    $("#gpu").textContent = gpu
+      ? `${gpu.nom.replace("NVIDIA GeForce ", "")} · ${nf(gpu.memoire_utilisee / 1024, 1)} / ${nf(gpu.memoire_totale / 1024, 1)} Go · ${nf(gpu.utilisation)} % · ${nf(gpu.temperature)} °C`
+      : "GPU non détecté (nvidia-smi)";
+    return s;
+  } catch (e) {
+    setPill($("#activePill"), "erreur", "Serveur injoignable");
+    return null;
+  }
+}
+
+// ---------- graphiques ----------
+function niceTicks(min, max, count = 4) {
+  if (min === max) { max = min + 1; min = Math.max(0, min - 1); }
+  const span = max - min, step0 = span / count;
+  const mag = Math.pow(10, Math.floor(Math.log10(step0)));
+  const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => span / s <= count) || 10 * mag;
+  const ticks = [];
+  for (let v = Math.floor(min / step) * step; v <= max + step * 1e-9; v += step) ticks.push(Math.round(v / step) * step);
+  return ticks;
+}
+function lineChart(container, series, opts = {}) {
+  container.replaceChildren();
+  const data = series.filter(s => s.points.length);
+  if (!data.length) { container.append(el("div", { class: "empty", text: opts.empty || "Pas encore de valeur." })); return; }
+  if (data.length > 1) container.append(el("div", { class: "legend" }, ...data.map(s => el("span", { style: `--c: var(${s.color})`, text: s.name }))));
+  const W = Math.max(280, container.clientWidth), H = 220, m = { l: 44, r: 64, t: 10, b: 26 };
+  const xs = data.flatMap(s => s.points.map(p => p[0])), ys = data.flatMap(s => s.points.map(p => p[1]));
+  const xMin = Math.min(...xs, 0), xMax = Math.max(...xs, 1);
+  let yMin = opts.yMin ?? Math.min(...ys), yMax = opts.yMax ?? Math.max(...ys);
+  if (opts.yMin === undefined) yMin = Math.max(0, yMin - (yMax - yMin) * 0.1);
+  const yt = niceTicks(yMin, yMax);
+  yMin = Math.min(yMin, yt[0]); yMax = Math.max(yMax, yt[yt.length - 1]);
+  const X = x => m.l + (x - xMin) / ((xMax - xMin) || 1) * (W - m.l - m.r);
+  const Y = y => m.t + (1 - (y - yMin) / ((yMax - yMin) || 1)) * (H - m.t - m.b);
+  const NS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.setAttribute("height", H);
+  svg.setAttribute("role", "img");
+  svg.setAttribute("aria-label", opts.label || "graphique");
+  const add = (tag, attrs, parent = svg) => {
+    const e = document.createElementNS(NS, tag);
+    for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+    parent.append(e);
+    return e;
+  };
+  const axis = add("g", { class: "axis" });
+  for (const t of yt) {
+    add("line", { x1: m.l, x2: W - m.r, y1: Y(t), y2: Y(t), stroke: "var(--grid)", "stroke-width": 1 }, axis);
+    add("text", { x: m.l - 8, y: Y(t) + 4, "text-anchor": "end" }, axis).textContent = opts.fmt ? opts.fmt(t) : nf3(t);
+  }
+  add("line", { x1: m.l, x2: W - m.r, y1: H - m.b, y2: H - m.b, stroke: "var(--axis)", "stroke-width": 1 }, axis);
+  for (const t of niceTicks(xMin, xMax, 5)) {
+    if (t < xMin || t > xMax) continue;
+    add("text", { x: X(t), y: H - m.b + 16, "text-anchor": "middle" }, axis).textContent = nf(t);
+  }
+  for (const s of data) {
+    const d = s.points.map((p, i) => `${i ? "L" : "M"}${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join("");
+    add("path", { d, fill: "none", stroke: `var(${s.color})`, "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" });
+    const last = s.points[s.points.length - 1];
+    add("circle", { cx: X(last[0]), cy: Y(last[1]), r: 4, fill: `var(${s.color})`, stroke: "var(--surface)", "stroke-width": 2 });
+  }
+  // Étiquettes de fin : valeur (et nom si plusieurs séries), écartées si elles se chevauchent.
+  const ends = data.map(s => { const p = s.points[s.points.length - 1]; return { s, y: Y(p[1]), v: p[1] }; }).sort((a, b) => a.y - b.y);
+  for (let i = 1; i < ends.length; i++) if (ends[i].y - ends[i - 1].y < 14) ends[i].y = ends[i - 1].y + 14;
+  for (const e of ends) add("text", { x: W - m.r + 8, y: e.y + 4, class: "endlbl" }).textContent = opts.fmt ? opts.fmt(e.v) : nf3(e.v);
+  // Survol : réticule vertical + infobulle listant toutes les séries au pas le plus proche.
+  const cross = add("line", { y1: m.t, y2: H - m.b, stroke: "var(--axis)", "stroke-width": 1, visibility: "hidden" });
+  const dots = data.map(s => add("circle", { r: 4, fill: `var(${s.color})`, stroke: "var(--surface)", "stroke-width": 2, visibility: "hidden" }));
+  const hit = add("rect", { x: m.l, y: m.t, width: W - m.l - m.r, height: H - m.t - m.b, fill: "transparent" });
+  const tip = el("div", { class: "tip", hidden: true });
+  const allX = [...new Set(xs)].sort((a, b) => a - b);
+  const move = ev => {
+    const r = svg.getBoundingClientRect(), px = (ev.clientX - r.left) * (W / r.width);
+    const x = allX.reduce((best, v) => Math.abs(X(v) - px) < Math.abs(X(best) - px) ? v : best, allX[0]);
+    cross.setAttribute("x1", X(x)); cross.setAttribute("x2", X(x)); cross.setAttribute("visibility", "visible");
+    tip.replaceChildren(el("div", { class: "t", text: `Pas ${nf(x)}` }));
+    data.forEach((s, i) => {
+      const p = s.points.reduce((b, q) => Math.abs(q[0] - x) < Math.abs(b[0] - x) ? q : b, s.points[0]);
+      dots[i].setAttribute("cx", X(p[0])); dots[i].setAttribute("cy", Y(p[1])); dots[i].setAttribute("visibility", "visible");
+      tip.append(el("div", { class: "r", style: `--c: var(${s.color})` }, el("i"), el("b", { text: opts.fmt ? opts.fmt(p[1]) : nf3(p[1]) }),
+        el("span", { text: `${s.name}${p[0] !== x ? ` (pas ${nf(p[0])})` : ""}` })));
+    });
+    tip.hidden = false;
+    const left = (X(x) / W) * r.width;
+    tip.style.left = Math.min(Math.max(0, left + 12), r.width - tip.offsetWidth) + "px";
+    tip.style.top = (container.querySelector(".legend") ? 28 : 0) + 8 + "px";
+  };
+  const leave = () => { tip.hidden = true; cross.setAttribute("visibility", "hidden"); dots.forEach(d => d.setAttribute("visibility", "hidden")); };
+  hit.addEventListener("pointermove", move);
+  hit.addEventListener("pointerleave", leave);
+  container.append(svg, tip);
+}
+
+// ---------- suivi ----------
+let lastDetail = null;
+async function refreshFollow() {
+  const name = state.follow || state.active || (state.runs[0] && state.runs[0].nom);
+  if (!name) { $("#followEmpty").hidden = false; $("#follow").hidden = true; return; }
+  state.follow = name;
+  try {
+    const d = await api("/api/runs/" + encodeURIComponent(name));
+    lastDetail = d;
+    renderFollow(d);
+  } catch (e) {
+    $("#followEmpty").hidden = false; $("#follow").hidden = true;
+  }
+}
+function series(history, key) { return history.filter(h => typeof h[key] === "number").map(h => [h.step, h[key]]); }
+function renderFollow(d) {
+  $("#followEmpty").hidden = true; $("#follow").hidden = false;
+  const p = d.progression || {}, h = p.history || [];
+  $("#fName").textContent = d.nom;
+  setPill($("#fStatus"), d.statut);
+  const stopping = state.stopRequested[d.nom] || (p.phase || "").startsWith("arrêt demandé");
+  $("#fPhase").textContent = d.actif ? `Étape : ${p.phase || "—"}` : (p.phase && d.statut !== p.phase ? `Dernière étape : ${p.phase}` : "");
+  $("#btnStop").hidden = !d.actif || stopping;
+  $("#btnKill").hidden = !d.actif || !stopping;
+  const step = p.step || 0, max = p.max_steps || 0;
+  const ratio = max ? step / max : (d.statut === "terminé" ? 1 : 0);
+  $("#fBar").style.width = (ratio * 100).toFixed(1) + "%";
+  $("#fBarWrap").setAttribute("aria-valuenow", Math.round(ratio * 100));
+  const elapsed = (p.finished_at || p.updated_at || Date.now() / 1000) - (p.started_at || Date.now() / 1000);
+  const kv = $("#fKv");
+  kv.replaceChildren(...[
+    el("span", {}, "Pas ", el("b", { text: `${nf(step)} / ${max ? nf(max) : "—"}` }), max ? ` (${nf(ratio * 100)} %)` : ""),
+    el("span", {}, "Époque ", el("b", { text: `${nf(p.epoch || 0, 2)} / ${p.num_train_epochs ? nf(p.num_train_epochs, 0) : "—"}` })),
+    el("span", {}, "Écoulé ", el("b", { text: duration(elapsed) })),
+    d.actif ? el("span", {}, "Restant ", el("b", { text: p.eta_seconds !== undefined ? "≈ " + duration(p.eta_seconds) : "—" })) : null,
+    p.seconds_per_step ? el("span", {}, el("b", { text: nf(p.seconds_per_step, 1) + " s" }), " par pas") : null,
+    el("span", {}, "Paires ", el("b", { text: `${nf(p.train_pairs)} / ${nf(p.eval_pairs)}` }), " (entraînement / éval.)"),
+  ].filter(Boolean));
+  const err = $("#fError");
+  err.hidden = !(p.error || d.statut === "erreur" || d.statut === "interrompu");
+  err.textContent = p.error ? `Erreur : ${p.error}` :
+    (d.statut === "interrompu" ? "Processus arrêté sans fin normale. Voir le journal ; le run peut être repris depuis son dernier checkpoint (Historique)." :
+     d.statut === "erreur" ? "Le processus s'est terminé en erreur : voir le journal." : "");
+
+  const loss = series(h, "loss"), evalLoss = series(h, "eval_loss"), score = series(h, "eval_score_qualite"), syntax = series(h, "eval_syntaxe_ok");
+  const lastV = s => s.length ? s[s.length - 1][1] : null;
+  const best = evalLoss.length ? Math.min(...evalLoss.map(x => x[1])) : null;
+  const stats = $("#fStats");
+  const tile = (label, value, detail) => el("div", { class: "stat" }, el("div", { class: "label", text: label }), el("div", { class: "value", text: value }), detail ? el("div", { class: "detail", text: detail }) : null);
+  stats.replaceChildren(
+    tile("Perte d'entraînement", nf3(lastV(loss)), loss.length ? `pas ${nf(loss[loss.length - 1][0])}` : "pas encore journalisée"),
+    tile("Perte d'évaluation", nf3(lastV(evalLoss)), best !== null ? `meilleure : ${nf3(best)}` : "pas encore évaluée"),
+    tile("Score qualité (sonde)", lastV(score) === null ? "—" : nf(lastV(score), 2), score.length ? `syntaxe valide : ${pct(lastV(syntax))}` : "à la première évaluation"),
+    tile("Sorties tronquées (sonde)", pct(lastV(series(h, "eval_tronque"))), "max de tokens atteint"),
+  );
+  lineChart($("#chartLoss"), [
+    { name: "Entraînement", color: "--series-1", points: loss },
+    { name: "Évaluation", color: "--series-2", points: evalLoss },
+  ], { label: "Courbes de perte" });
+  lineChart($("#chartQuality"), [
+    { name: "Score qualité", color: "--series-1", points: score },
+    { name: "Syntaxe valide", color: "--series-2", points: syntax },
+  ], { yMin: 0, yMax: 1, fmt: v => nf(v, 2), label: "Sonde qualité", empty: "Disponible à la première évaluation (sonde activée)." });
+  renderValuesTable(h);
+  renderResults(d.metriques);
+  $("#fPath").textContent = d.chemin;
+  const logEl = $("#fLog");
+  const atBottom = logEl.scrollHeight - logEl.scrollTop - logEl.clientHeight < 30;
+  logEl.textContent = d.journal || "(vide)";
+  if (atBottom) logEl.scrollTop = logEl.scrollHeight;
+}
+function renderValuesTable(h) {
+  const rows = new Map();
+  for (const e of h) {
+    if (typeof e.step !== "number") continue;
+    const r = rows.get(e.step) || { step: e.step };
+    for (const k of ["loss", "eval_loss", "eval_score_qualite", "eval_syntaxe_ok", "learning_rate"]) if (typeof e[k] === "number") r[k] = e[k];
+    rows.set(e.step, r);
+  }
+  const list = [...rows.values()].filter(r => Object.keys(r).length > 1).sort((a, b) => a.step - b.step);
+  const wrap = $("#fTable");
+  if (!list.length) { wrap.replaceChildren(el("div", { class: "muted", text: "Aucune valeur pour l'instant." })); return; }
+  const head = el("tr", {}, ...["Pas", "Perte", "Perte éval.", "Score qualité", "Syntaxe valide", "Taux d'apprentissage"].map(t => el("th", { class: "num", text: t })));
+  const body = list.map(r => el("tr", {},
+    el("td", { class: "num", text: nf(r.step) }), el("td", { class: "num", text: nf3(r.loss) }), el("td", { class: "num", text: nf3(r.eval_loss) }),
+    el("td", { class: "num", text: r.eval_score_qualite === undefined ? "—" : nf(r.eval_score_qualite, 2) }),
+    el("td", { class: "num", text: r.eval_syntaxe_ok === undefined ? "—" : pct(r.eval_syntaxe_ok) }),
+    el("td", { class: "num", text: r.learning_rate === undefined ? "—" : r.learning_rate.toExponential(2) })));
+  wrap.replaceChildren(el("table", {}, el("thead", {}, head), el("tbody", {}, ...body)));
+}
+const METRICS = [
+  ["n", "Paires évaluées", v => nf(v)], ["score_qualite", "Score qualité moyen (0 à 1)", v => nf(v, 3)],
+  ["score_reference", "Score qualité des références", v => nf(v, 3)], ["syntaxe_ok", "Syntaxe valide", pct],
+  ["langue_ok", "Langue attendue", pct], ["tronque", "Sorties tronquées", pct],
+  ["scenarios_moyens", "Scénarios par sortie", v => nf(v, 1)], ["scenarios_reference", "Scénarios par référence", v => nf(v, 1)],
+  ["critere_tag_regle", "Tag de règle", pct], ["critere_nominal", "Cas @nominal", pct], ["critere_limite", "Cas @limite", pct],
+  ["critere_negatif", "Cas @négatif", pct], ["critere_structure", "Ordre Étant donné / Quand / Alors", pct],
+  ["critere_plans", "Plans de scénario cohérents", pct], ["chiffres_ancres", "Nombres présents dans la spécification", pct],
+  ["chrf", "chrF vs référence", v => nf(v, 1)],
+];
+function renderResults(m) {
+  $("#fResults").hidden = !m;
+  if (!m) return;
+  const rows = METRICS.filter(([k]) => m[k] !== undefined && m[k] !== null)
+    .map(([k, label, f]) => el("tr", {}, el("td", { text: label }), el("td", { class: "num", text: f(m[k]) })));
+  $("#fResultsTable").replaceChildren(el("table", {}, el("tbody", {}, ...rows)));
+}
+$("#btnStop").addEventListener("click", async () => {
+  if (!confirm("L'entraînement s'arrêtera à la fin du pas en cours et l'adaptateur sera enregistré (sans évaluation finale). Continuer ?")) return;
+  try { await api("/api/arreter", { nom: state.follow, forcer: false }); state.stopRequested[state.follow] = true; refreshFollow(); }
+  catch (e) { showMsg(e.message); }
+});
+$("#btnKill").addEventListener("click", async () => {
+  if (!confirm("Le processus sera tué immédiatement. Seuls les checkpoints déjà écrits seront conservés. Continuer ?")) return;
+  try { await api("/api/arreter", { nom: state.follow, forcer: true }); refreshFollow(); }
+  catch (e) { showMsg(e.message); }
+});
+
+// ---------- historique ----------
+async function refreshRuns() {
+  try {
+    const { runs } = await api("/api/runs");
+    state.runs = runs;
+    renderRuns();
+    updateManifestOptions();
+  } catch (e) { showMsg(e.message); }
+}
+function renderRuns() {
+  $("#runsDir").textContent = state.runsDir;
+  const wrap = $("#runsTable");
+  if (!state.runs.length) { wrap.replaceChildren(el("div", { class: "empty", text: "Aucun run pour l'instant." })); return; }
+  const head = el("tr", {}, el("th", { text: "Run" }), el("th", { text: "Statut" }), el("th", { class: "num", text: "Paires (entr. / éval.)" }),
+    el("th", { class: "num", text: "Pas" }), el("th", { class: "num", text: "Perte éval." }), el("th", { class: "num", text: "Score qualité" }),
+    el("th", { class: "num", text: "Syntaxe valide" }), el("th", { text: "Lancé le" }), el("th", { text: "" }));
+  const body = state.runs.map(r => {
+    const pill = el("span", { class: "pill" }, el("i"), el("span"));
+    setPill(pill, r.statut);
+    const actions = el("div", { class: "row" },
+      el("button", { class: "btn", text: "Suivre", onclick: () => { state.follow = r.nom; selectTab("suivi"); } }),
+      el("button", { class: "btn", text: "Réutiliser", title: "Copier ces paramètres dans un nouvel entraînement", onclick: () => reuse(r.nom) }),
+      (r.checkpoints && ["arrêté", "interrompu", "erreur"].includes(r.statut))
+        ? el("button", { class: "btn", text: "Reprendre", title: "Reprendre depuis le dernier checkpoint", onclick: () => resume(r.nom) }) : null);
+    return el("tr", {}, el("td", {}, el("b", { text: r.nom })), el("td", {}, pill),
+      el("td", { class: "num", text: `${nf(r.paires_train)} / ${nf(r.paires_eval)}` }),
+      el("td", { class: "num", text: r.pas_max ? `${nf(r.pas)} / ${nf(r.pas_max)}` : nf(r.pas) }),
+      el("td", { class: "num", text: nf3(r.eval_loss) }), el("td", { class: "num", text: r.score_qualite == null ? "—" : nf(r.score_qualite, 3) }),
+      el("td", { class: "num", text: pct(r.syntaxe_ok) }), el("td", { text: dateFr(r.debut) }), el("td", {}, actions));
+  });
+  wrap.replaceChildren(el("table", {}, el("thead", {}, head), el("tbody", {}, ...body)));
+}
+function updateManifestOptions() {
+  const sel = $("#manifest"), current = sel.value;
+  sel.replaceChildren(el("option", { value: "", text: "Nouveau découpage" }));
+  for (const r of state.runs.filter(r => r.manifeste)) {
+    sel.append(el("option", { value: `${state.runsDir}/${r.nom}/data/manifest.json`, text: `Celui du run ${r.nom}` }));
+  }
+  ensureOption(sel, current);
+  sel.value = current;
+  const baseSel = $("#baseConfig"), base = baseSel.value;
+  for (const o of $$("option[data-run]", baseSel)) o.remove();
+  for (const r of state.runs) baseSel.append(el("option", { value: "run:" + r.nom, "data-run": "1", text: `Run ${r.nom}` }));
+  baseSel.value = base;
+}
+async function reuse(name) {
+  $("#baseConfig").value = "run:" + name;
+  await loadBaseConfig();
+  state.nameEdited = false;
+  suggestName();
+  selectTab("nouveau");
+}
+async function resume(name) {
+  if (!confirm(`Reprendre « ${name} » depuis son dernier checkpoint, avec ses paramètres d'origine ?`)) return;
+  try {
+    const { config } = await api("/api/config?run=" + encodeURIComponent(name));
+    await api("/api/lancer", { config, nom: name, reprendre: true });
+    state.follow = name;
+    delete state.stopRequested[name];
+    selectTab("suivi");
+  } catch (e) { showMsg("Reprise impossible : " + e.message); }
+}
+
+// ---------- démarrage et rafraîchissement ----------
+async function init() {
+  const s = await refreshState();
+  const sel = $("#baseConfig");
+  sel.replaceChildren();
+  for (const c of (s && s.configs) || []) sel.append(el("option", { value: c, text: c }));
+  sel.append(el("option", { value: "", text: "Valeurs par défaut du programme" }));
+  sel.value = ((s && s.configs) || []).includes("ministral3b_lora.yaml") ? "ministral3b_lora.yaml" : sel.options[0].value;
+  await refreshRuns();
+  await loadBaseConfig();
+  suggestName();
+  if (state.active) { state.follow = state.active; selectTab("suivi"); }
+}
+let ticking = false;
+setInterval(async () => {
+  if (ticking || document.hidden) return;
+  ticking = true;
+  try {
+    const before = state.active;
+    await refreshState();
+    if (state.tab === "suivi") await refreshFollow();
+    if (state.tab === "historique" || before !== state.active) await refreshRuns();
+  } finally { ticking = false; }
+}, 2000);
+let resizeTimer;
+window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { if (lastDetail && state.tab === "suivi") renderFollow(lastDetail); }, 150); });
+init().catch(e => showMsg("Initialisation impossible : " + e.message));
+</script>
+</body>
+</html>

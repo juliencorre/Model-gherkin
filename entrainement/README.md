@@ -9,6 +9,7 @@ Commandes disponibles (`gherkin-ft --help`) :
 
 | Commande | Rôle |
 |---|---|
+| `ihm` | **Interface web locale** : paramétrer, lancer, suivre et arrêter les entraînements (voir § 3 bis) |
 | `check-env` | Vérifie pilote, CUDA, sm_120, bf16, noyau Triton de TRL, bitsandbytes et versions |
 | `prepare` | Charge, filtre et découpe les données, sans entraîner (statistiques de longueur, rejets) |
 | `train` | Entraîne l'adaptateur LoRA / QLoRA, puis l'évalue par génération |
@@ -104,6 +105,39 @@ Contenu d'un run (`entrainement/runs/<nom>/`) :
 **Courbe d'apprentissage** (500, 1 000, 2 000 paires puis tout, même jeu d'évaluation figé) :
 `bash entrainement/scripts/courbe_apprentissage.sh`, résultat dans `entrainement/runs/courbe/comparaison.md`.
 
+## 3 bis. Interface web (IHM)
+
+```bash
+gherkin-ft ihm          # ouvre http://127.0.0.1:7860/ dans le navigateur
+```
+
+Une page, trois onglets, sans dépendance supplémentaire (serveur de la bibliothèque standard Python) :
+
+- **Nouvel entraînement** : configuration de départ (fichiers de `configs/` ou paramètres d'un run précédent),
+  nom du run, et tous les réglages utiles. Pour les données : fichiers, **nombre de paires d'entraînement**
+  (raccourcis 250 / 500 / 1 000 / 2 000 / toutes), part d'évaluation, jeu d'évaluation figé (repris d'un run
+  précédent pour comparer des runs), longueur maximale. Pour le modèle : LoRA bf16 ou QLoRA 4 bits, rang, alpha,
+  dropout. Pour l'entraînement : époques, taux d'apprentissage, batch et accumulation (batch effectif affiché),
+  évaluation, arrêt anticipé, meilleur modèle. Pour l'évaluation : sonde qualité, évaluation finale, prompt système.
+  « Analyser les données » compte les paires disponibles, montre le découpage par dispositif et les rejets,
+  et estime le nombre de pas.
+- **Suivi** : étape en cours (préparation, chargement du modèle, entraînement, évaluation…), barre de
+  progression, pas, époque, temps écoulé et restant, courbes de perte (entraînement et évaluation) et de la
+  sonde qualité avec infobulle au survol, valeurs journalisées, résultats de l'évaluation finale, journal en
+  direct, utilisation du GPU (nvidia-smi). **Arrêter et enregistrer** termine le pas en cours et garde
+  l'adaptateur ; **Forcer l'arrêt** tue le processus (seuls les checkpoints déjà écrits restent).
+- **Historique** : tous les runs avec statut, nombre de paires, perte d'évaluation, score qualité et syntaxe
+  valide ; boutons Suivre, **Réutiliser** (copie les paramètres) et **Reprendre** (depuis le dernier checkpoint).
+
+L'entraînement tourne dans un processus séparé : fermer la page ou l'interface ne l'arrête pas, et la rouvrir
+le retrouve. Un seul entraînement à la fois (un seul GPU). L'interface écoute sur 127.0.0.1 ; pour y accéder
+depuis un autre poste, préférez un tunnel SSH (`ssh -L 7860:127.0.0.1:7860 machine`). Avec
+`--host 0.0.0.0`, un jeton aléatoire est exigé et affiché au démarrage.
+
+Le suivi repose sur `<run>/progress.json`, écrit aussi par `gherkin-ft train` en ligne de commande, et l'arrêt
+propre sur un fichier `<run>/STOP` : un run lancé en ligne de commande dans `entrainement/runs/` apparaît donc
+aussi dans l'interface.
+
 ## 4. Utiliser le modèle
 
 ```bash
@@ -178,5 +212,8 @@ cd entrainement && python -m pytest -q
 
 Les tests couvrent les contrôles qualité, le chargement et le découpage des données, la configuration, et une
 chaîne complète sur CPU (entraînement, évaluation, comparaison, fusion, génération) avec un Ministral 3
-miniature à poids aléatoires (`tests/tiny_model.py`, même architecture que le vrai). Sur CPU, le noyau Triton
-de TRL est remplacé dans les tests par un équivalent PyTorch ; sur GPU, c'est le vrai noyau qui tourne.
+miniature à poids aléatoires (`tests/tiny_model.py`, même architecture que le vrai). `tests/test_ihm.py` teste
+l'interface : API, protections (en-tête, Host, jeton), et de vrais entraînements lancés en sous-processus
+(3 paires jusqu'au bout, arrêt propre, reprise depuis un checkpoint, arrêt forcé, serveur redémarré qui retrouve
+un entraînement en cours). Sur CPU, le noyau Triton de TRL est remplacé dans les tests par un équivalent PyTorch
+(`tests/cpu_kernel.py`, `tests/cpu_cli.py`) ; sur GPU, c'est le vrai noyau qui tourne.
