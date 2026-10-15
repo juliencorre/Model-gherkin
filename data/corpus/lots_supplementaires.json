@@ -33,5 +33,15 @@
   "legi",
   "data/unites/legi.jsonl",
   "data/lots/legi/sortie_*.jsonl"
+ ],
+ [
+  "service_public_2",
+  "data/unites/service_public_2.jsonl",
+  "data/lots/service_public_2/sortie_*.jsonl"
+ ],
+ [
+  "legi_2",
+  "data/unites/legi_2.jsonl",
+  "data/lots/legi_2/sortie_*.jsonl"
  ]
 ]
