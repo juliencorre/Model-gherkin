@@ -1,0 +1,60 @@
+# LoRA bf16 sur Ministral 3 3B Instruct — configuration par défaut pour une RTX 5080 (16 Go).
+# Mémoire estimée : ~8 Go de poids bf16 + activations (gradient checkpointing) ≈ 12-14 Go à max_length 2048.
+# Si « CUDA out of memory » : per_device_train_batch_size: 1 et gradient_accumulation_steps: 16,
+# ou bien la configuration QLoRA (ministral3b_qlora.yaml).
+# Les chemins sont relatifs au dossier d'où la commande est lancée (racine du dépôt).
+
+model:
+  name_or_path: mistralai/Ministral-3-3B-Instruct-2512-BF16  # pas la version FP8 par défaut
+  load_in_4bit: false
+  attn_implementation: sdpa
+  dtype: bfloat16
+
+lora:
+  r: 32
+  alpha: 64
+  dropout: 0.05
+  # target_modules : par défaut toutes les projections linéaires du modèle de langage, vision exclue.
+
+data:
+  # Jeu d'affinage du dépôt (format « messages », découpé par l'agent de préparation du corpus).
+  train_files: [data/sft/train.jsonl]
+  eval_files: [data/sft/val.jsonl]     # perte d'évaluation, sonde qualité, choix du meilleur checkpoint
+  test_files: [data/sft/test.jsonl]    # évaluation finale uniquement
+  drop_train_groups_in_eval: false     # les domaines sont larges et partagés par le découpage fourni
+  # Paires pilotes (champs id / specification / gherkin) : train_files: [data/pilote/gherkin_fr_*.jsonl],
+  # eval_files: [], test_files: [], metadata_files: [data/pilote/regles_20.jsonl] et découpage automatique.
+  group_by: [dispositif, domaine, groupe, source]
+  eval_ratio: 0.1
+  require_valid_gherkin: true
+  min_reference_score: 0.0
+  max_length: 2048
+  seed: 42
+
+training:
+  output_dir: entrainement/runs/ministral3b-gherkin-lora
+  num_train_epochs: 3
+  per_device_train_batch_size: 2
+  per_device_eval_batch_size: 2
+  gradient_accumulation_steps: 8   # batch effectif de 16
+  learning_rate: 1.0e-4
+  lr_scheduler_type: cosine
+  warmup_ratio: 0.05
+  weight_decay: 0.0
+  optim: adamw_torch_fused
+  gradient_checkpointing: true
+  logging_steps: 10
+  eval_steps: 50
+  save_total_limit: 3
+  load_best_model_at_end: true
+  metric_for_best_model: eval_loss
+  early_stopping_patience: 3
+  report_to: [tensorboard]
+
+eval:
+  batch_size: 8
+  max_new_tokens: 2048
+  do_sample: false
+  probe_samples: 16        # génération de 16 Gherkin à chaque évaluation (0 pour désactiver)
+  probe_max_new_tokens: 1536
+  run_after_training: true

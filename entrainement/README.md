@@ -1,0 +1,236 @@
+# Entraînement de Ministral 3 3B Instruct pour écrire du Gherkin
+
+Ce dossier contient le programme d'affinage (LoRA ou QLoRA) de **Ministral 3 3B Instruct** : à partir d'une
+spécification fonctionnelle, le modèle doit écrire une fonctionnalité Gherkin en français, de qualité
+(tags de règle, cas nominaux, limites et négatifs, plans de scénario cohérents). Il consomme les paires
+préparées dans `data/` (format ci-dessous) et vise une **RTX 5080 (16 Go) sous Ubuntu**.
+
+Commandes disponibles (`gherkin-ft --help`) :
+
+| Commande | Rôle |
+|---|---|
+| `ihm` | **Interface web locale** : paramétrer, lancer, suivre et arrêter les entraînements (voir § 3 bis) |
+| `check-env` | Vérifie pilote, CUDA, sm_120, bf16, noyau Triton de TRL, bitsandbytes et versions |
+| `prepare` | Charge, filtre et découpe les données, sans entraîner (statistiques de longueur, rejets) |
+| `train` | Entraîne l'adaptateur LoRA / QLoRA, puis l'évalue par génération |
+| `evaluate` | Fait écrire le Gherkin du jeu d'évaluation et mesure sa qualité (modèle de base ou affiné) |
+| `compare` | Tableau comparatif de plusieurs `metrics.json` |
+| `generate` | Écrit le Gherkin d'une spécification (nouvel essai si la sortie est invalide) |
+| `merge` | Fusionne l'adaptateur dans le modèle de base (bf16), pour vLLM ou une conversion GGUF |
+
+## 1. Installation (Ubuntu 22.04 / 24.04, RTX 5080)
+
+Prérequis : pilote NVIDIA **570 ou plus récent, en version « open »** (les modules noyau open sont obligatoires
+pour les cartes Blackwell). Le toolkit CUDA système n'est pas nécessaire : les roues PyTorch embarquent le leur.
+
+```bash
+sudo ubuntu-drivers list                  # pilotes proposés
+sudo apt install nvidia-driver-580-open   # ou la version -open la plus récente
+sudo reboot
+```
+
+Puis, depuis la racine du dépôt :
+
+```bash
+bash entrainement/install_ubuntu_rtx5080.sh   # crée entrainement/.venv (Python 3.12, uv)
+source entrainement/.venv/bin/activate
+gherkin-ft check-env
+```
+
+Le script choisit la roue PyTorch selon le pilote : CUDA 13.0 (`cu130`) si pilote ≥ 580, CUDA 12.8 (`cu128`)
+si pilote 570-579. Les deux contiennent le code pour sm_120 (RTX 50xx). `check-env` vérifie en plus que le noyau
+Triton utilisé par TRL pour la perte compile sur la carte, et que bitsandbytes (QLoRA) fonctionne.
+
+## 2. Données
+
+Par défaut, le programme s'entraîne sur **`data/sft/`**, le jeu préparé par l'agent de corpus : 2 052 paires
+d'entraînement (`train.jsonl`), 93 de validation (`val.jsonl`) et 99 de test (`test.jsonl`), une paire par ligne
+au format « messages » :
+
+```json
+{"id": "pilote-RG-01", "messages": [{"role": "system", "content": "Tu es un expert…"},
+ {"role": "user", "content": "Spécification :\n…\n\nRédige le fichier Gherkin (en français)…"},
+ {"role": "assistant", "content": "# language: fr\nFonctionnalité: …"}],
+ "meta": {"source_type": "catala", "domaine": "smic", "niveau": "A", "licence_source": "Apache-2.0"}}
+```
+
+- **Prompt** : le message système et la consigne des données sont réutilisés tels quels à l'entraînement et à
+  l'évaluation. Le gabarit (« Spécification : {specification} … Rédige le fichier Gherkin… ») est déduit des
+  données et enregistré avec l'adaptateur : `generate` reproduit exactement ce format.
+- **Découpage** : celui des fichiers est respecté. `val.jsonl` sert à la perte d'évaluation, à la sonde qualité
+  et au choix du meilleur checkpoint ; `test.jsonl` n'est utilisé que pour l'évaluation finale.
+- **Nombre de paires** : `data.train_limit` et `data.eval_limit` (ou les champs de l'interface) limitent les
+  paires d'entraînement et d'évaluation, par tirage reproductible, après le filtre de longueur.
+- **Tags** : `data/sft` ne contient pas les tags `@RG-xx` ; le critère « tag de règle » ne s'applique qu'aux
+  références qui en portent.
+- Longueurs mesurées avec le tokenizer de Ministral 3 : 305 à 1 707 tokens par exemple (médiane 749,
+  p95 1 093) ; `max_length: 2048` les garde toutes.
+
+Autres formats acceptés : les paires pilotes (`{"id", "specification", "gherkin", "notes"}`, champs renommables
+par `data.fields`), avec un découpage automatique par groupe :
+
+- le groupe (dispositif) vient du premier champ non vide parmi `dispositif`, `domaine`, `groupe`, `source`
+  (y compris dans `meta`) ; `data.metadata_files` le joint par `id` (ex. `regles_*.jsonl`) ; sans aucun groupe,
+  le découpage se fait paire par paire, avec un avertissement ;
+- `data.eval_ratio` fixe la part d'évaluation ; `data.drop_train_groups_in_eval: true` retire de l'entraînement
+  les groupes présents dans des fichiers d'évaluation dédiés (désactivé par défaut : les domaines de `data/sft`
+  sont larges et partagés par son découpage).
+
+Filtres communs : Gherkin invalide pour le parseur officiel (`require_valid_gherkin`), score de qualité de la
+référence sous un seuil (`min_reference_score`), spécifications en double (l'exemplaire de test, puis
+d'évaluation, est gardé), paires de plus de `max_length` tokens (écartées plutôt que tronquées).
+
+`gherkin-ft prepare -c entrainement/configs/ministral3b_lora.yaml` écrit dans `<output_dir>/data/` :
+`train.jsonl`, `eval.jsonl`, `test.jsonl`, `manifest.json` (identifiants et groupes de chaque côté) et
+`rapport.json` (rejets, longueurs, prompt retenu).
+
+## 3. Entraîner et évaluer
+
+Toutes les commandes se lancent depuis la racine du dépôt (les chemins des configs en dépendent).
+
+```bash
+CFG=entrainement/configs/ministral3b_lora.yaml
+
+# Référence : le modèle de base, avec le même prompt, sur le jeu d'évaluation
+gherkin-ft prepare  -c $CFG
+gherkin-ft evaluate -c $CFG --data entrainement/runs/ministral3b-gherkin-lora/data/eval.jsonl \
+                    --out entrainement/runs/eval-base --label base
+
+# Entraînement (évaluation par génération incluse à la fin)
+gherkin-ft train -c $CFG
+tensorboard --logdir entrainement/runs/ministral3b-gherkin-lora/checkpoints   # suivi en direct
+
+# Comparaison base / affiné
+gherkin-ft compare entrainement/runs/eval-base/metrics.json \
+                   entrainement/runs/ministral3b-gherkin-lora/eval/metrics.json
+```
+
+Toute valeur de la config se surcharge en ligne de commande :
+`--set training.learning_rate=2e-4 --set data.train_limit=1000 --set training.output_dir=entrainement/runs/essai`.
+Reprise après interruption : `--set training.resume_from_checkpoint=last`.
+
+Contenu d'un run (`entrainement/runs/<nom>/`) :
+
+| Chemin | Contenu |
+|---|---|
+| `adapter/` | Adaptateur LoRA, tokenizer, `gherkin_ft.json` (modèle de base, prompt système, gabarit) |
+| `checkpoints/` | Points de contrôle et journaux TensorBoard |
+| `data/` | Découpage utilisé (`manifest.json`, `train.jsonl`, `eval.jsonl`, `rapport.json`) |
+| `eval/` | `metrics.json`, `predictions.jsonl` (sortie, analyse, score par paire), `rapport.md` |
+| `config.yaml`, `train.log`, `metrics_entrainement.json` | Config résolue, journal, pertes finales |
+
+**Courbe d'apprentissage** (500, 1 000, 2 000 paires puis tout, même jeu d'évaluation figé) :
+`bash entrainement/scripts/courbe_apprentissage.sh`, résultat dans `entrainement/runs/courbe/comparaison.md`.
+
+## 3 bis. Interface web (IHM)
+
+```bash
+gherkin-ft ihm          # ouvre http://127.0.0.1:7860/ dans le navigateur
+```
+
+Une page, trois onglets, sans dépendance supplémentaire (serveur de la bibliothèque standard Python) :
+
+- **Nouvel entraînement** : configuration de départ (fichiers de `configs/` ou paramètres d'un run précédent),
+  nom du run, et tous les réglages utiles. Pour les données : fichiers d'entraînement, d'évaluation et de test,
+  **nombre de paires d'entraînement** (raccourcis 250 / 500 / 1 000 / 2 000 / toutes) et **d'évaluation**, part
+  d'évaluation, jeu d'évaluation figé (repris d'un run précédent pour comparer des runs), longueur maximale. Pour le modèle : LoRA bf16 ou QLoRA 4 bits, rang, alpha,
+  dropout. Pour l'entraînement : époques, taux d'apprentissage, batch et accumulation (batch effectif affiché),
+  évaluation, arrêt anticipé, meilleur modèle. Pour l'évaluation : sonde qualité, évaluation finale, prompt système.
+  « Analyser les données » compte les paires disponibles, montre le découpage par dispositif et les rejets,
+  et estime le nombre de pas.
+- **Suivi** : étape en cours (préparation, chargement du modèle, entraînement, évaluation…), barre de
+  progression, pas, époque, temps écoulé et restant, courbes de perte (entraînement et évaluation) et de la
+  sonde qualité avec infobulle au survol, valeurs journalisées, résultats de l'évaluation finale, journal en
+  direct, utilisation du GPU (nvidia-smi). **Arrêter et enregistrer** termine le pas en cours et garde
+  l'adaptateur ; **Forcer l'arrêt** tue le processus (seuls les checkpoints déjà écrits restent).
+- **Historique** : tous les runs avec statut, nombre de paires, perte d'évaluation, score qualité et syntaxe
+  valide ; boutons Suivre, **Réutiliser** (copie les paramètres) et **Reprendre** (depuis le dernier checkpoint).
+
+L'entraînement tourne dans un processus séparé : fermer la page ou l'interface ne l'arrête pas, et la rouvrir
+le retrouve. Un seul entraînement à la fois (un seul GPU). L'interface écoute sur 127.0.0.1 ; pour y accéder
+depuis un autre poste, préférez un tunnel SSH (`ssh -L 7860:127.0.0.1:7860 machine`). Avec
+`--host 0.0.0.0`, un jeton aléatoire est exigé et affiché au démarrage.
+
+Le suivi repose sur `<run>/progress.json`, écrit aussi par `gherkin-ft train` en ligne de commande, et l'arrêt
+propre sur un fichier `<run>/STOP` : un run lancé en ligne de commande dans `entrainement/runs/` apparaît donc
+aussi dans l'interface.
+
+## 4. Utiliser le modèle
+
+```bash
+# Depuis un fichier (ou l'entrée standard), sortie dans un .feature
+gherkin-ft generate --adapter entrainement/runs/ministral3b-gherkin-lora/adapter \
+                    --id RG-42 -f spec_rg42.txt -o RG-42.feature
+
+# Modèle autonome fusionné (bf16, ~8 Go), pour vLLM ou une conversion GGUF (llama.cpp → Ollama, LM Studio)
+gherkin-ft merge --adapter entrainement/runs/ministral3b-gherkin-lora/adapter \
+                 --out entrainement/runs/ministral3b-gherkin-fusionne
+```
+
+`generate` extrait le Gherkin d'une réponse éventuellement bavarde, le valide avec le parseur officiel et refait
+jusqu'à `--retries` essais (échantillonnés) si la sortie est invalide ou tronquée. Le prompt système enregistré avec
+l'adaptateur est réutilisé : le modèle voit exactement le prompt de son entraînement.
+
+## 5. Mesure de la qualité
+
+`evaluate` (et la sonde lancée à chaque évaluation pendant l'entraînement, sur `eval.probe_samples` paires)
+analyse chaque sortie avec le parseur officiel `gherkin-official` :
+
+| Critère du score (poids) | Contrôle |
+|---|---|
+| Syntaxe et langue (condition) | Parseur officiel, `# language: fr` ; sinon le score vaut 0 |
+| Tag de règle (0,15) | Part des scénarios portant `@<id>` (tags hérités compris) |
+| `@nominal`, `@limite`, `@négatif` (0,15 chacun) | Présence de chaque type de cas (accents et casse ignorés) |
+| Structure (0,15) | Au moins un Quand et un Alors, ordre Étant donné → Quand → Alors |
+| Plans de scénario (0,15) | Chaque `<paramètre>` a sa colonne dans `Exemples`, aucune colonne inutilisée |
+| Volume (0,10) | Au moins 3 scénarios |
+
+S'y ajoutent des indicateurs : sorties tronquées, blocs markdown, scénarios à plusieurs Quand (style BRIEF),
+part des nombres du Gherkin présents dans la spécification, et chrF par rapport à la référence.
+**Ces contrôles ne vérifient pas l'exactitude métier des valeurs attendues** : seule une relecture, ou un
+oracle comme le compilateur Catala, le peut.
+
+## 6. Choix techniques
+
+- **Poids BF16** : `mistralai/Ministral-3-3B-Instruct-2512` est publié en FP8, inadapté à la LoRA ; on utilise
+  `mistralai/Ministral-3-3B-Instruct-2512-BF16` (le programme refuse le dépôt FP8 avec un message clair).
+- **Architecture** : Ministral 3 est un modèle vision-langage (`Mistral3ForConditionalGeneration`, 3,85 G de
+  paramètres dont 0,42 G pour la vision). Il est chargé tel quel, mais la LoRA ne cible que les projections
+  du modèle de langage : 49,4 M de paramètres entraînables (1,28 %) pour r = 32, aucun dans la vision.
+  L'adaptateur s'applique donc directement au modèle officiel.
+- **Perte sur la réponse seule** : format « prompt-completion » de TRL ; le prompt (jusqu'à `[/INST]`) est
+  masqué, la cible commence à `# language: fr` et inclut le `</s>` final, pour que le modèle apprenne à s'arrêter.
+- **Prompt système explicite** : le modèle de chat de Ministral insère son prompt « Le Chat » par défaut si
+  aucun n'est fourni ; le nôtre décrit les règles de rédaction et est enregistré avec l'adaptateur.
+- **Tokenizer** : chargé avec `fix_mistral_regex=True`, comme le demande transformers pour les tokenizers Mistral.
+- **Pile logicielle** : transformers ≥ 5 (support de Ministral 3), TRL ≥ 1.0, PEFT, attention SDPA de PyTorch
+  (pas de dépendance à flash-attention), bf16, TF32, gradient checkpointing.
+
+## 7. Mémoire et réglages sur RTX 5080 (16 Go)
+
+| Config | Poids | Réglages par défaut |
+|---|---|---|
+| `ministral3b_lora.yaml` (recommandée) | bf16, ~8 Go | batch 2 × accumulation 8, lr 1e-4, r 32, 3 époques, `max_length` 2048 |
+| `ministral3b_qlora.yaml` | NF4, ~3 Go | batch 4 × accumulation 4, lr 2e-4, `paged_adamw_8bit`, `max_length` 3072 |
+
+En cas de « CUDA out of memory » : `--set training.per_device_train_batch_size=1 --set
+training.gradient_accumulation_steps=16`, baisser `data.max_length`, réduire `eval.batch_size` (la sonde
+génère pendant l'entraînement) ou passer en QLoRA. Fermer les applications qui utilisent le GPU (navigateur,
+session graphique sur la même carte) libère aussi de la mémoire.
+
+Ces valeurs n'ont pas été mesurées sur une RTX 5080 (l'environnement de développement n'a pas de GPU) :
+ce sont des estimations à confirmer au premier lancement (`nvidia-smi` pendant l'entraînement).
+
+## 8. Tests
+
+```bash
+cd entrainement && python -m pytest -q
+```
+
+Les tests couvrent les contrôles qualité, le chargement et le découpage des données, la configuration, et une
+chaîne complète sur CPU (entraînement, évaluation, comparaison, fusion, génération) avec un Ministral 3
+miniature à poids aléatoires (`tests/tiny_model.py`, même architecture que le vrai). `tests/test_ihm.py` teste
+l'interface : API, protections (en-tête, Host, jeton), et de vrais entraînements lancés en sous-processus
+(3 paires jusqu'au bout, arrêt propre, reprise depuis un checkpoint, arrêt forcé, serveur redémarré qui retrouve
+un entraînement en cours). Sur CPU, le noyau Triton de TRL est remplacé dans les tests par un équivalent PyTorch
+(`tests/cpu_kernel.py`, `tests/cpu_cli.py`) ; sur GPU, c'est le vrai noyau qui tourne.

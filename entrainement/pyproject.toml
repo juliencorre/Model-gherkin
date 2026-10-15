@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gherkin-ft"
+version = "0.1.0"
+description = "Affinage LoRA de Ministral 3 3B Instruct pour rédiger des tests Gherkin en français"
+readme = "README.md"
+requires-python = ">=3.10"
+# torch s'installe à part, depuis l'index CUDA de PyTorch (voir install_ubuntu_rtx5080.sh).
+dependencies = [
+    "transformers>=5.2",
+    "trl>=1.0",
+    "peft>=0.18",
+    "accelerate>=1.10",
+    "datasets>=4.0",
+    "gherkin-official>=29",
+    "pyyaml>=6",
+    "sacrebleu>=2.4",
+    "packaging",
+]
+
+[project.optional-dependencies]
+gpu = ["bitsandbytes>=0.46", "tensorboard>=2.16"]
+dev = ["pytest>=8"]
+
+[project.scripts]
+gherkin-ft = "gherkin_ft.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["gherkin_ft*"]
+
+[tool.setuptools.package-data]
+gherkin_ft = ["static/*.html"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["slow: entraînement miniature de bout en bout (CPU, ~1 min)"]
