@@ -58,8 +58,14 @@ def strip_markdown_fence(text: str) -> tuple[str, bool]:
     return text, False
 
 
-def extract_gherkin(text: str) -> str:
-    """Extrait le Gherkin d'une réponse bavarde : retire le bloc markdown et le texte avant `# language`."""
+FEATURE_START_RE = re.compile(r"^\s*(?:@|Fonctionnalité\s*:|Caractéristique\s*:|Feature\s*:)", re.I)
+
+
+def extract_gherkin(text: str, language: str | None = "fr") -> str:
+    """Extrait le Gherkin d'une réponse bavarde : retire le bloc markdown et le texte avant le Gherkin.
+
+    Si l'en-tête `# language:` manque, il est ajouté (sans lui, le parseur lit les mots-clés en anglais).
+    Réservé à la commande `generate` : l'évaluation mesure la sortie brute du modèle."""
     text, _ = strip_markdown_fence(text.strip())
     if "```" in text:  # bloc au milieu d'un texte explicatif
         parts = text.split("```")
@@ -69,7 +75,9 @@ def extract_gherkin(text: str) -> str:
     for i, line in enumerate(lines):
         if line.strip().lower().startswith("# language:"):
             return "\n".join(lines[i:]).strip() + "\n"
-    return text.strip() + "\n"
+    start = next((i for i, line in enumerate(lines) if FEATURE_START_RE.match(line)), 0)
+    body = "\n".join(lines[start:]).strip()
+    return (f"# language: {language}\n" if language else "") + body + "\n"
 
 
 def _numbers(text: str) -> list[str]:

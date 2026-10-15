@@ -135,3 +135,13 @@ def test_extract_gherkin_from_chatty_answer():
     chatty = "Voici les scénarios :\n\n```gherkin\n" + p["gherkin"] + "```\nN'hésitez pas !"
     assert extract_gherkin(chatty).startswith("# language: fr")
     assert analyze_gherkin(extract_gherkin(chatty), p["id"]).syntax_ok
+
+
+def test_extract_gherkin_restores_missing_language_header():
+    # Sortie réelle d'un modèle peu entraîné : pas d'en-tête, donc mots-clés lus en anglais.
+    p = first_pair()
+    headless = "Voici :\n" + p["gherkin"].split("\n", 1)[1]
+    assert not analyze_gherkin(headless, p["id"]).syntax_ok
+    fixed = extract_gherkin(headless)
+    assert fixed.startswith("# language: fr\n@RG-01")
+    assert quality_score(analyze_gherkin(fixed, p["id"]), p["id"]) == 1.0

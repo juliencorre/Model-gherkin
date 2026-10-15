@@ -129,7 +129,7 @@ def cmd_generate(args) -> int:
         params = GenerationParams(max_new_tokens=args.max_new_tokens, batch_size=1, do_sample=attempt > 0,
                                   temperature=args.temperature)
         text, finished = generate(model, tokenizer, [messages], params)[0]
-        text = extract_gherkin(text)
+        text = extract_gherkin(text, lang)
         a = analyze_gherkin(text, args.id, spec, lang)
         score = quality_score(a, args.id)
         if best is None or score > best[1]:
