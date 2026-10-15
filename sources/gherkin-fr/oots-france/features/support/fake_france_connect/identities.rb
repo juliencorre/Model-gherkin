@@ -1,0 +1,190 @@
+require 'date'
+require 'digest'
+
+module FakeFranceConnect
+  # One test identity of a member state's eIDAS node, as the bridge hands it to
+  # FranceConnect+ once translated.
+  #
+  # Names of use, invented: « Il est interdit d'utiliser de vraies données
+  # personnelles sur l'environnement bac à sable » holds here too, and these
+  # identities are the fake's own, like the named users of the mock node the
+  # FranceConnect sources ship.
+  class Identity
+    # The bridge maps an eIDAS level of assurance onto an ACR value, and it is
+    # that one the core keeps as long as its own configuration admits it —
+    # `getInteractionAcr` falls back on the level the service provider asked
+    # for otherwise, a case no configuration of the fake can reach.
+    # back/libs/eidas-oidc-mapper/src/mappers/eidas-to-oidc.mapper.ts
+    # back/libs/oidc-acr/src/oidc-acr.service.ts
+    ACR_BY_LEVEL = { 'low' => 'eidas2', 'substantial' => 'eidas2', 'high' => 'eidas3' }.freeze
+
+    # Which claims each scope covers, and the reason `preferred_username` is not
+    # among what `family_name` yields: the core publishes it under `profile` and
+    # under a scope of its own, so a procedure asking for a family name gets a
+    # family name.
+    # back/libs/scopes/src/data/fcp-high/fcp-high.scopes.ts
+    CLAIMS_BY_SCOPE = {
+      'given_name' => %w[given_name],
+      'family_name' => %w[family_name],
+      'birthdate' => %w[birthdate],
+      'gender' => %w[gender],
+      'birthplace' => %w[birthplace],
+      'preferred_username' => %w[preferred_username],
+      'profile' => %w[given_name family_name birthdate gender preferred_username],
+    }.freeze
+
+    # The claim the procedure reads the eIDAS identifier from — a name of this
+    # repository's, which no scope of FranceConnect+ covers.
+    PERSON_IDENTIFIER = 'person_identifier'.freeze
+
+    attr_reader :key, :country, :level, :eidas_identifier, :given_name, :family_name, :birthdate, :person_identifier
+
+    # `eidas_identifier` is what the `sub` derives from: the published
+    # identifier when there is one, an internal one the fake never publishes
+    # otherwise.
+    def initialize(key:, country:, level:, given_name:, family_name:, birthdate:,
+                   person_identifier: nil, eidas_identifier: person_identifier, gender: nil, birthplace: nil)
+      @key = key
+      @country = country
+      @level = level
+      @eidas_identifier = eidas_identifier
+      @given_name = given_name
+      @family_name = family_name
+      @birthdate = birthdate
+      @gender = gender
+      @birthplace = birthplace
+      @person_identifier = person_identifier
+    end
+
+    def acr = ACR_BY_LEVEL.fetch(level)
+
+    def label = "#{given_name} #{family_name} (#{birthdate})"
+
+    # What `/userinfo` answers, `sub` excepted: the claims the requested scopes
+    # cover, minus those this identity has not got. The bridge renders a
+    # European user with **no** identifier and **no** country, and the fake
+    # reproduces that gap rather than filling it — which is why neither
+    # `birthcountry` nor `email` appears in the map above. The identifier is the
+    # one deliberate exception, and `docs/test_e2e.md` says why: the fixed
+    # identities and an identity typed in with one publish it whatever the
+    # scopes, none of them covering it.
+    # back/libs/eidas-oidc-mapper/src/mappers/eidas-to-oidc.mapper.ts
+    def claims_for(scopes)
+      covered = scopes.flat_map { |scope| CLAIMS_BY_SCOPE.fetch(scope, []) }.uniq
+
+      values.slice(*covered).merge({ PERSON_IDENTIFIER => person_identifier }.compact)
+    end
+
+    private
+
+    attr_reader :gender, :birthplace
+
+    # `preferred_username` is the family name: the bridge has no other name to
+    # put there, a European user carrying no birth name.
+    def values
+      {
+        'given_name' => given_name, 'family_name' => family_name, 'birthdate' => birthdate,
+        'gender' => gender, 'birthplace' => birthplace, 'preferred_username' => family_name,
+      }.compact
+    end
+  end
+
+  # The identities the fake serves, and the countries its first page offers:
+  # every member state, and the same three identities behind each of them — what
+  # a country button changes is the screen, never who signs in.
+  module Identities
+    COUNTRY_NAMES = {
+      'AT' => 'Austria', 'BE' => 'Belgium', 'BG' => 'Bulgaria', 'HR' => 'Croatia', 'CY' => 'Cyprus',
+      'CZ' => 'Czechia', 'DK' => 'Denmark', 'EE' => 'Estonia', 'FI' => 'Finland', 'FR' => 'France',
+      'DE' => 'Germany', 'GR' => 'Greece', 'HU' => 'Hungary', 'IE' => 'Ireland', 'IT' => 'Italy', 'LV' => 'Latvia',
+      'LT' => 'Lithuania', 'LU' => 'Luxembourg', 'MT' => 'Malta', 'NL' => 'Netherlands', 'PL' => 'Poland',
+      'PT' => 'Portugal', 'RO' => 'Romania', 'SK' => 'Slovakia', 'SI' => 'Slovenia', 'ES' => 'Spain',
+      'SE' => 'Sweden',
+    }.freeze
+
+    # `A` is the twenty-sixth character before the regional indicator symbol that
+    # stands for it, and a pair of those is what a flag emoji is made of. Written
+    # out here rather than borrowed from `CountryTagComponent`, which says the
+    # same thing: this server runs in a process of its own and loads no Rails.
+    REGIONAL_INDICATOR = 0x1F1A5
+
+    ALL = [
+      Identity.new(
+        key: 'dk-substantial', country: 'DK', level: 'substantial',
+        person_identifier: 'DK/FR/61f6a1b0-3d3c-4f24-9a2f-6d1c9f0f2a55',
+        given_name: 'Freja Marie', family_name: 'Sørensen', birthdate: '2001-04-17',
+        gender: 'female', birthplace: 'Aarhus',
+      ),
+      Identity.new(
+        key: 'dk-high', country: 'DK', level: 'high',
+        person_identifier: 'DK/FR/8c0d5ea2-77b1-4f0e-8f5a-2b93c4d61e07',
+        given_name: 'Mikkel Anker', family_name: 'Bruun', birthdate: '1998-09-03',
+      ),
+      Identity.new(
+        key: 'pl-substantial', country: 'PL', level: 'substantial',
+        person_identifier: 'PL/FR/91040665144',
+        given_name: 'Alicja', family_name: 'Roszponka', birthdate: '1991-04-06',
+      ),
+    ].freeze
+
+    ENTERED = 'entered'.freeze
+
+    # The third part of an eIDAS identifier, as `R-EDM-REQ-C040` checks it in a
+    # request: between 6 and 256 characters, none of them blank.
+    NATIONAL_PART = /\A\S{6,256}\z/
+
+    # TDD 2.1, §2.3: « In case of Greece, the value of the Nationality Code MUST
+    # be "EL" instead of "GR" », where the country page offers ISO 3166 codes.
+    NATIONALITY_CODES = { 'GR' => 'EL' }.freeze
+
+    # The identity the operator types in on the identity page, for a
+    # demonstration that needs a name the fixed identities do not carry. At the
+    # high level, so that no `acr_values` refuses it. A national part typed in
+    # becomes the published eIDAS identifier — nationality, then France as the
+    # destination, per TDD 2.1, §2.3 — and the `sub` derives from it; without
+    # one, the internal identifier is drawn from what was typed, so that the
+    # same person under the same country gets the same `sub` twice.
+    def self.entered(country:, given_name:, family_name:, birthdate:, national_part: '')
+      given_name = given_name.strip
+      family_name = family_name.strip
+      national_part = national_part.strip
+      return if given_name.empty? || family_name.empty? || !iso_date?(birthdate) || !national_part?(national_part)
+
+      person_identifier = composed(country, national_part)
+      digest = Digest::SHA256.hexdigest([country, given_name, family_name, birthdate].join("\n"))
+      Identity.new(key: ENTERED, country: country, level: 'high',
+        person_identifier: person_identifier, eidas_identifier: person_identifier || "#{country}/FR/#{digest}",
+        given_name: given_name, family_name: family_name, birthdate: birthdate)
+    end
+
+    def self.iso_date?(value)
+      return false unless value.match?(/\A\d{4}-\d{2}-\d{2}\z/)
+
+      Date.iso8601(value)
+      true
+    rescue Date::Error
+      false
+    end
+
+    def self.national_part?(value) = value.empty? || value.match?(NATIONAL_PART)
+
+    def self.composed(country, national_part)
+      "#{NATIONALITY_CODES.fetch(country, country)}/FR/#{national_part}" unless national_part.empty?
+    end
+
+    private_class_method :iso_date?, :national_part?, :composed
+
+    def self.countries = COUNTRY_NAMES.keys
+
+    def self.country_name(code) = COUNTRY_NAMES.fetch(code)
+
+    # The flag before the name, as the bridge's own country page shows it.
+    def self.flag(code)
+      code.upcase.chars.map { |letter| (letter.ord + REGIONAL_INDICATOR).chr(Encoding::UTF_8) }.join
+    end
+
+    def self.of_country(code) = COUNTRY_NAMES.key?(code) ? ALL : []
+
+    def self.find(key) = ALL.find { |identity| identity.key == key }
+  end
+end

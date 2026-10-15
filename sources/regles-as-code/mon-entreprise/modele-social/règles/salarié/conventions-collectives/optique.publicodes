@@ -1,0 +1,87 @@
+salarié . convention collective . optique:
+  formule: convention collective = 'optique'
+  titre: Optique
+  icônes: 👓
+
+salarié . convention collective . optique . prime d'ancienneté:
+  applicable si: convention collective = 'optique'
+  remplace: rémunération . primes . ancienneté
+  formule:
+    produit:
+      - salaire minimum conventionnel
+      - variations:
+          - si: ancienneté >= 15 an
+            alors: 15%
+          - si: ancienneté >= 12 an
+            alors: 12%
+          - si: ancienneté >= 9 an
+            alors: 9%
+          - si: ancienneté >= 6 an
+            alors: 6%
+          - si: ancienneté >= 3 an
+            alors: 3%
+          - sinon: 0%
+  références:
+    Légifrance: https://www.legifrance.gouv.fr/affichIDCC.do?idSectionTA=KALISCTA000005736434&cidTexte=KALITEXT000005649634&idConvention=KALICONT000005635912
+
+salarié . convention collective . optique . salaire minimum conventionnel:
+  unité: €/mois
+  formule:
+    variations:
+      - si: coefficient < 110
+        alors: 0
+      - si: coefficient < 115
+        alors: 1485
+      - si: coefficient < 130
+        alors: 1555
+      - si: coefficient < 140
+        alors: 1585
+      - si: coefficient < 160
+        alors: 1645
+      - si: coefficient < 180
+        alors: 1650
+      - si: coefficient < 195
+        alors: 1660
+      - si: coefficient < 210
+        alors: 1715
+      - si: coefficient < 220
+        alors: 1845
+      - si: coefficient < 230
+        alors: 1920
+      - si: coefficient < 250
+        alors: 1945
+      - si: coefficient < 280
+        alors: 2150
+      - si: coefficient < 300
+        alors: 2305
+      - si: coefficient < 330
+        alors: 2560
+      - si: coefficient < 350
+        alors: 2715
+      - si: coefficient < 380
+        alors: 2970
+      - sinon: 3170
+
+salarié . convention collective . optique . coefficient:
+  question: Quel est le coefficient correspondant au poste du salarié ?
+  description: >-
+    Se référer à la [grille fournie par la convention
+    collective](https://www.optometrie-aof.com/images/telecharger/convention_collective.pdf#page=45).
+  par défaut: 110 point
+
+salarié . convention collective . optique . prévoyance:
+  non applicable si: contrat . statut cadre
+  barème:
+    assiette: contrat . salaire brut
+    tranches:
+      - taux: 0.46%
+        plafond: 4 * plafond sécurité sociale
+
+  avec:
+    employeur:
+      remplace: cotisations . prévoyances . conventionnelle . employeur
+      valeur: 60% * prévoyance
+
+    salarié:
+      remplace: cotisations . prévoyances . conventionnelle . salarié
+      valeur: 40% * prévoyance

@@ -1,0 +1,36 @@
+{
+  "Identifier": "VR-EU-0000",
+  "Type": "Acceptance",
+  "Country": "EU",
+  "Version": "1.0.0",
+  "SchemaVersion": "1.0.0",
+  "Engine": "CERTLOGIC",
+  "EngineVersion": "0.7.5",
+  "CertificateType": "Vaccination",
+  "Description": [
+    {
+      "lang": "en",
+      "desc": "At most one v-event."
+    },
+    {
+      "lang": "de",
+      "desc": "Es darf nur ein einziges Impfzertifikat enthalten sein."
+    },
+    {
+      "lang": "bg",
+      "desc": "Позволено е само едно събитие за ваксиниран."
+    }
+  ],
+  "ValidFrom": "2021-06-01T00:00:00Z",
+  "ValidTo": "2030-06-01T00:00:00Z",
+  "AffectedFields": [
+    "v.1"
+  ],
+  "Logic": {
+    "!": [
+      {
+        "var": "payload.v.1"
+      }
+    ]
+  }
+}

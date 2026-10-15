@@ -1,0 +1,15 @@
+{
+    "name": "FALSE if Vaccine Medicinal Product =  Pfizer",
+    "payload": {
+      "v": [
+        {
+            "mp": "Pfizer"
+        }
+      ]
+    },
+    "expected": false,
+    "external": {
+      "validationClock": "2023-05-10T00:00:00+00:00"
+    }
+  }
+  

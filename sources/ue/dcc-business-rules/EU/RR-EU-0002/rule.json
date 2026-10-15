@@ -1,0 +1,89 @@
+{
+  "Identifier": "RR-EU-0002",
+  "Type": "Acceptance",
+  "Country": "EU",
+  "Version": "1.0.0",
+  "SchemaVersion": "1.0.0",
+  "Engine": "CERTLOGIC",
+  "EngineVersion": "0.7.5",
+  "CertificateType": "Recovery",
+  "Description": [
+    {
+      "lang": "en",
+      "desc": "The validity start date must be greater than or equal to the first positive test date  +11 days and validity end date must be less than or equal to the first postive test date +180."
+    },
+    {
+      "lang": "de",
+      "desc": "Der positive NAA-Test (z.B. PCR) muss mindestens 11 Tage und darf maximal 180 tage zurückliegen."
+    },
+    {
+      "lang": "bg",
+      "desc": "Периода на валидност трябва да е не по-малко от 11 дни и не повече от 180 дни от датата на първия положителен тест."
+    }
+  ],
+  "ValidFrom": "2021-06-01T00:00:00Z",
+  "ValidTo": "2030-06-01T00:00:00Z",
+  "AffectedFields": [
+    "r.0",
+    "r.0.df",
+    "r.0.du",
+
+    "r.0.fr"
+  ],
+  "Logic": {
+    "if": [
+      {
+        "var": "payload.r.0"
+      },
+      {
+        "and": [
+          {
+            "not-before": [
+              {
+                "plusTime": [
+                  {
+                    "var": "payload.r.0.df"
+                  },
+                  0,
+                  "day"
+                ]
+              },
+              {
+                "plusTime": [
+                  {
+                    "var": "payload.r.0.fr"
+                  },
+                  11,
+                  "day"
+                ]
+              }
+            ]
+          },
+          {
+            "not-after": [
+              {
+                "plusTime": [
+                  {
+                    "var": "payload.r.0.du"
+                  },
+                  0,
+                  "day"
+                ]
+              },
+              {
+                "plusTime": [
+                  {
+                    "var": "payload.r.0.fr"
+                  },
+                  180,
+                  "day"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      true
+    ]
+  }
+}
