@@ -79,6 +79,7 @@ def prepare_data(cfg: Config, tokenizer, out_dir: Path) -> tuple[list[Pair], lis
     # Limite appliquée après le filtre de longueur : on obtient bien le nombre de paires demandé.
     available = len(train)
     train = subsample(train, cfg.data.train_limit, cfg.data.seed)
+    evals = subsample(evals, cfg.data.eval_limit, cfg.data.seed)
     if cfg.data.train_limit and cfg.data.train_limit > available:
         report.warn(f"{cfg.data.train_limit} paires demandées, {available} disponibles : toutes sont utilisées.")
     data_dir = out_dir / "data"

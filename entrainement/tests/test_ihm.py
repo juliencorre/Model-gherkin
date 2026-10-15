@@ -117,10 +117,10 @@ def test_preview_counts_pairs_and_limit(server):
     status, data = client.request("/api/config")
     cfg = data["config"]
     cfg["data"].update(train_files=[str(FIX / "paires.jsonl")], metadata_files=[str(FIX / "regles.jsonl")],
-                       eval_files=[], test_files=[], eval_ratio=0.3, train_limit=3)
+                       eval_files=[], test_files=[], eval_ratio=0.3, train_limit=3, eval_limit=1)
     status, p = client.request("/api/apercu", {"config": cfg})
     assert status == 200, p
-    assert p["lues"] == 6 and p["disponibles_train"] + p["eval"] == 6
+    assert p["lues"] == 6 and p["disponibles_train"] + p["eval_disponibles"] == 6 and p["eval"] == 1
     assert p["utilisees_train"] == 3 and p["methode"] == "par groupe"
     assert not set(p["groupes_train"]) & set(p["groupes_eval"])
     cfg["training"]["learnin_rate"] = 1

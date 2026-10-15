@@ -239,6 +239,10 @@ a { color: var(--accent); }
             </div>
             <small id="limitHint">Vide = toutes les paires disponibles. Tirage aléatoire reproductible (graine des données).</small>
           </div>
+          <label class="f">Nombre de paires d'évaluation
+            <input type="number" min="1" step="1" placeholder="toutes" data-k="data.eval_limit" data-t="optint">
+            <small id="evalHint">Vide = toutes. Moins de paires : évaluations plus rapides, mesure moins précise.</small>
+          </label>
           <label class="f">Part réservée à l'évaluation (%)
             <input type="number" min="0" max="50" step="1" data-k="data.eval_ratio" data-t="pct">
             <small>Seulement sans fichiers d'évaluation : découpage par dispositif, sans fuite.</small>
@@ -605,7 +609,7 @@ for (const c of $$("#limitChips .chip")) c.addEventListener("click", () => {
   updateChips(); updateDerived(); suggestName();
 });
 $("#trainLimit").addEventListener("input", () => { updateChips(); updateDerived(); suggestName(); });
-for (const inp of $$("[data-k^='training.'], [data-k='data.train_limit']")) inp.addEventListener("input", updateDerived);
+for (const inp of $$("[data-k^='training.'], [data-k='data.train_limit'], [data-k='data.eval_limit']")) inp.addEventListener("input", updateDerived);
 
 function usedTrainPairs() {
   if (!state.preview) return null;
@@ -628,7 +632,9 @@ function updateDerived() {
   const epochs = Number($("[data-k='training.num_train_epochs']").value.replace(",", ".")) || 0;
   const perEpoch = Math.ceil(n / (bs * ga));
   const steps = maxSteps > 0 ? maxSteps : Math.ceil(perEpoch * epochs);
-  est.textContent = `${nf(n)} paires d'entraînement · ${nf(state.preview.eval)} d'évaluation` +
+  const evalLim = Number($("[data-k='data.eval_limit']").value) || 0;
+  const nEval = evalLim ? Math.min(evalLim, state.preview.eval_disponibles) : state.preview.eval_disponibles;
+  est.textContent = `${nf(n)} paires d'entraînement · ${nf(nEval)} d'évaluation` +
     (state.preview.test ? ` · ${nf(state.preview.test)} de test` : "") + " · " +
     `≈ ${nf(steps)} pas d'optimisation (${nf(perEpoch)} par époque)`;
 }
@@ -668,7 +674,7 @@ function renderPreview(p) {
   box.append(el("div", { class: "big" }, ...[
     el("div", {}, el("b", { text: nf(p.disponibles_train) }), el("span", { text: "disponibles pour l'entraînement" })),
     el("div", {}, el("b", { text: nf(used) }), el("span", { text: "utilisées" })),
-    el("div", {}, el("b", { text: nf(p.eval) }), el("span", { text: "pour l'évaluation" })),
+    el("div", {}, el("b", { text: nf(p.eval) }), el("span", { text: p.eval < p.eval_disponibles ? `pour l'évaluation (sur ${nf(p.eval_disponibles)})` : "pour l'évaluation" })),
     p.test ? el("div", {}, el("b", { text: nf(p.test) }), el("span", { text: "de test (évaluation finale)" })) : null,
     el("div", {}, el("b", { text: nf(p.lues) }), el("span", { text: `lues dans ${p.fichiers.length} fichier(s)` })),
   ].filter(Boolean)));

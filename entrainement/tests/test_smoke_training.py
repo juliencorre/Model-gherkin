@@ -78,6 +78,7 @@ def test_train_evaluate_merge_generate(tmp_path):
     (run2 / "STOP").touch()  # un STOP antérieur au lancement est ignoré...
     cfg.training.output_dir = str(run2)
     cfg.data.train_limit = 2
+    cfg.data.eval_limit = 1
     cfg.training.max_steps = 50
 
     from gherkin_ft import progress as progress_mod
@@ -94,7 +95,7 @@ def test_train_evaluate_merge_generate(tmp_path):
     finally:
         progress_mod.ProgressWriter.__init__ = original_init
     p2 = json.loads((run2 / "progress.json").read_text())
-    assert p2["status"] == "arrêté" and p2["step"] == 1 and p2["train_pairs"] == 2
+    assert p2["status"] == "arrêté" and p2["step"] == 1 and p2["train_pairs"] == 2 and p2["eval_pairs"] == 1
     assert (run2 / "adapter" / "adapter_config.json").exists() and not (run2 / "eval").exists()
 
     # Le modèle aléatoire n'écrit pas de Gherkin valide : code de retour 1 attendu, mais sans erreur.

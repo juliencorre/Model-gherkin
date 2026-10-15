@@ -43,29 +43,46 @@ Triton utilisé par TRL pour la perte compile sur la carte, et que bitsandbytes 
 
 ## 2. Données
 
-Fichiers JSONL, une paire par ligne, au format produit par la préparation du corpus :
+Par défaut, le programme s'entraîne sur **`data/sft/`**, le jeu préparé par l'agent de corpus : 2 052 paires
+d'entraînement (`train.jsonl`), 93 de validation (`val.jsonl`) et 99 de test (`test.jsonl`), une paire par ligne
+au format « messages » :
 
 ```json
-{"id": "RG-01", "specification": "Le SMIC brut horaire est…", "gherkin": "# language: fr\n@RG-01\nFonctionnalité: …", "notes": "…"}
+{"id": "pilote-RG-01", "messages": [{"role": "system", "content": "Tu es un expert…"},
+ {"role": "user", "content": "Spécification :\n…\n\nRédige le fichier Gherkin (en français)…"},
+ {"role": "assistant", "content": "# language: fr\nFonctionnalité: …"}],
+ "meta": {"source_type": "catala", "domaine": "smic", "niveau": "A", "licence_source": "Apache-2.0"}}
 ```
 
-- **Champs reconnus** : `id`, `specification` (ou `spec`, `exigence`, `input`), `gherkin` (ou `feature`,
-  `output`, `completion`). Autres noms : `data.fields: {specification: ma_colonne}`.
-  `notes` et les autres métadonnées courtes (source, licence…) sont conservées mais jamais montrées au modèle.
-- **Découpage train / évaluation par groupe** (dispositif juridique), jamais par scénario, pour éviter les
-  fuites : le groupe vient du premier champ non vide parmi `dispositif`, `domaine`, `groupe`, `source`.
-  Les paires pilotes n'ont pas de domaine : `data.metadata_files` les joint par `id` aux fichiers
-  `regles_*.jsonl`. Sans aucun groupe, le découpage se fait paire par paire, avec un avertissement.
-- **Jeu d'évaluation fourni** : `data.eval_files` (ex. les 300 paires revues à la main) ou un champ
-  `split: "eval"` dans les paires. Les paires d'entraînement d'un groupe présent dans l'évaluation sont retirées.
-- **Filtres** : Gherkin invalide pour le parseur officiel (`require_valid_gherkin`), score de qualité de la
-  référence sous un seuil (`min_reference_score`), spécifications en double, paires de plus de `max_length`
-  tokens (écartées plutôt que tronquées, pour ne pas apprendre des Gherkin coupés).
+- **Prompt** : le message système et la consigne des données sont réutilisés tels quels à l'entraînement et à
+  l'évaluation. Le gabarit (« Spécification : {specification} … Rédige le fichier Gherkin… ») est déduit des
+  données et enregistré avec l'adaptateur : `generate` reproduit exactement ce format.
+- **Découpage** : celui des fichiers est respecté. `val.jsonl` sert à la perte d'évaluation, à la sonde qualité
+  et au choix du meilleur checkpoint ; `test.jsonl` n'est utilisé que pour l'évaluation finale.
+- **Nombre de paires** : `data.train_limit` et `data.eval_limit` (ou les champs de l'interface) limitent les
+  paires d'entraînement et d'évaluation, par tirage reproductible, après le filtre de longueur.
+- **Tags** : `data/sft` ne contient pas les tags `@RG-xx` ; le critère « tag de règle » ne s'applique qu'aux
+  références qui en portent.
+- Longueurs mesurées avec le tokenizer de Ministral 3 : 305 à 1 707 tokens par exemple (médiane 749,
+  p95 1 093) ; `max_length: 2048` les garde toutes.
+
+Autres formats acceptés : les paires pilotes (`{"id", "specification", "gherkin", "notes"}`, champs renommables
+par `data.fields`), avec un découpage automatique par groupe :
+
+- le groupe (dispositif) vient du premier champ non vide parmi `dispositif`, `domaine`, `groupe`, `source`
+  (y compris dans `meta`) ; `data.metadata_files` le joint par `id` (ex. `regles_*.jsonl`) ; sans aucun groupe,
+  le découpage se fait paire par paire, avec un avertissement ;
+- `data.eval_ratio` fixe la part d'évaluation ; `data.drop_train_groups_in_eval: true` retire de l'entraînement
+  les groupes présents dans des fichiers d'évaluation dédiés (désactivé par défaut : les domaines de `data/sft`
+  sont larges et partagés par son découpage).
+
+Filtres communs : Gherkin invalide pour le parseur officiel (`require_valid_gherkin`), score de qualité de la
+référence sous un seuil (`min_reference_score`), spécifications en double (l'exemplaire de test, puis
+d'évaluation, est gardé), paires de plus de `max_length` tokens (écartées plutôt que tronquées).
 
 `gherkin-ft prepare -c entrainement/configs/ministral3b_lora.yaml` écrit dans `<output_dir>/data/` :
-`train.jsonl`, `eval.jsonl`, `manifest.json` (identifiants et groupes de chaque côté) et `rapport.json`
-(rejets et longueurs). Sur les 20 paires pilotes : 17 en entraînement, 3 en évaluation (domaines `asp` et
-`prestations_familiales`), de 605 à 1 336 tokens par exemple.
+`train.jsonl`, `eval.jsonl`, `test.jsonl`, `manifest.json` (identifiants et groupes de chaque côté) et
+`rapport.json` (rejets, longueurs, prompt retenu).
 
 ## 3. Entraîner et évaluer
 
@@ -114,9 +131,9 @@ gherkin-ft ihm          # ouvre http://127.0.0.1:7860/ dans le navigateur
 Une page, trois onglets, sans dépendance supplémentaire (serveur de la bibliothèque standard Python) :
 
 - **Nouvel entraînement** : configuration de départ (fichiers de `configs/` ou paramètres d'un run précédent),
-  nom du run, et tous les réglages utiles. Pour les données : fichiers, **nombre de paires d'entraînement**
-  (raccourcis 250 / 500 / 1 000 / 2 000 / toutes), part d'évaluation, jeu d'évaluation figé (repris d'un run
-  précédent pour comparer des runs), longueur maximale. Pour le modèle : LoRA bf16 ou QLoRA 4 bits, rang, alpha,
+  nom du run, et tous les réglages utiles. Pour les données : fichiers d'entraînement, d'évaluation et de test,
+  **nombre de paires d'entraînement** (raccourcis 250 / 500 / 1 000 / 2 000 / toutes) et **d'évaluation**, part
+  d'évaluation, jeu d'évaluation figé (repris d'un run précédent pour comparer des runs), longueur maximale. Pour le modèle : LoRA bf16 ou QLoRA 4 bits, rang, alpha,
   dropout. Pour l'entraînement : époques, taux d'apprentissage, batch et accumulation (batch effectif affiché),
   évaluation, arrêt anticipé, meilleur modèle. Pour l'évaluation : sonde qualité, évaluation finale, prompt système.
   « Analyser les données » compte les paires disponibles, montre le découpage par dispositif et les rejets,

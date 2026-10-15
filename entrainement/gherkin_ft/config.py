@@ -63,6 +63,7 @@ class DataConfig:
     expected_language: str = "fr"
     max_length: int = 2048  # prompt + réponse, en tokens ; les paires plus longues sont écartées
     train_limit: int | None = None  # sous-échantillon d'entraînement (courbe d'apprentissage)
+    eval_limit: int | None = None  # sous-échantillon d'évaluation (perte, sonde) pour des essais rapides
     seed: int = 42
 
 
