@@ -1,0 +1,39 @@
+# QLoRA (poids 4 bits NF4 + LoRA) : ~3 Go de poids, laisse de la marge pour des séquences longues
+# ou un batch plus gros. Légèrement moins précis et plus lent par pas que la LoRA bf16.
+
+model:
+  name_or_path: mistralai/Ministral-3-3B-Instruct-2512-BF16
+  load_in_4bit: true
+  attn_implementation: sdpa
+  dtype: bfloat16
+
+lora:
+  r: 32
+  alpha: 64
+  dropout: 0.05
+
+data:
+  train_files:
+    - data/**/gherkin_fr_*.jsonl
+  metadata_files:
+    - data/**/regles_*.jsonl
+  eval_ratio: 0.1
+  max_length: 3072
+  seed: 42
+
+training:
+  output_dir: entrainement/runs/ministral3b-gherkin-qlora
+  num_train_epochs: 3
+  per_device_train_batch_size: 4
+  per_device_eval_batch_size: 4
+  gradient_accumulation_steps: 4
+  learning_rate: 2.0e-4
+  optim: paged_adamw_8bit
+  gradient_checkpointing: true
+  eval_steps: 50
+  metric_for_best_model: eval_loss
+  report_to: [tensorboard]
+
+eval:
+  batch_size: 8
+  probe_samples: 16

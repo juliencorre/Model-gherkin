@@ -1,0 +1,273 @@
+"""Préparation des données et entraînement LoRA / QLoRA avec TRL (SFTTrainer)."""
+
+from __future__ import annotations
+
+import importlib.util
+import json
+import logging
+import subprocess
+from datetime import datetime, timezone
+from pathlib import Path
+
+import torch
+
+from .config import Config, save_config
+from .data import (
+    DataReport,
+    Pair,
+    build_manifest,
+    filter_by_length,
+    length_stats,
+    load_dataset_splits,
+    write_jsonl,
+)
+from .evaluation import evaluate_pairs, probe
+from .generation import GenerationParams, chat_token_ids
+from .modeling import count_parameters, load_base_model, load_tokenizer, write_run_info
+from .prompts import build_training_example
+
+log = logging.getLogger(__name__)
+
+
+def add_file_logging(path: Path) -> None:
+    handler = logging.FileHandler(path, encoding="utf-8")
+    handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
+    logging.getLogger().addHandler(handler)
+
+
+def _git_commit() -> str | None:
+    try:
+        return subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
+    except (OSError, subprocess.CalledProcessError):
+        return None
+
+
+def to_examples(pairs: list[Pair], cfg: Config) -> list[dict]:
+    return [
+        build_training_example(p.id, p.specification, p.gherkin, cfg.prompt.system_prompt, cfg.prompt.user_template)
+        for p in pairs
+    ]
+
+
+def token_lengths(examples: list[dict], tokenizer) -> list[int]:
+    return [len(chat_token_ids(tokenizer, ex["prompt"] + ex["completion"])) for ex in examples]
+
+
+def prepare_data(cfg: Config, tokenizer, out_dir: Path) -> tuple[list[Pair], list[Pair], DataReport]:
+    """Charge, filtre et découpe les paires ; écrit train.jsonl, eval.jsonl, manifest.json et rapport.json."""
+    train, evals, report = load_dataset_splits(cfg.data)
+    stats = {}
+    for name in ("train", "eval"):
+        pairs = train if name == "train" else evals
+        lengths = token_lengths(to_examples(pairs, cfg), tokenizer)
+        stats[name] = length_stats(lengths)
+        kept = filter_by_length(pairs, lengths, cfg.data.max_length, report)
+        if name == "train":
+            train = kept
+        else:
+            evals = kept
+    data_dir = out_dir / "data"
+    write_jsonl(train, data_dir / "train.jsonl")
+    write_jsonl(evals, data_dir / "eval.jsonl")
+    manifest = build_manifest(train, evals, report)
+    (data_dir / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    summary = {
+        "train": len(train),
+        "eval": len(evals),
+        "longueurs_tokens": stats,
+        "groupes_train": len(manifest["train_groups"]),
+        "groupes_eval": manifest["eval_groups"],
+        **report.to_dict(),
+    }
+    (data_dir / "rapport.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
+    log.info(
+        "Données : %d paires d'entraînement, %d d'évaluation (découpage %s) ; rejets : %s ; longueurs : %s",
+        len(train), len(evals), report.split_method, dict(report.dropped) or "aucun", stats,
+    )
+    if not train:
+        raise ValueError("Aucune paire d'entraînement après filtrage : voir data/rapport.json")
+    return train, evals, report
+
+
+def _report_to(requested: list[str]) -> list[str]:
+    available = []
+    for name in requested:
+        module = {"tensorboard": "tensorboard", "wandb": "wandb", "mlflow": "mlflow"}.get(name, name)
+        if name == "none" or importlib.util.find_spec(module) is not None:
+            available.append(name)
+        else:
+            log.warning("Suivi « %s » demandé mais le paquet n'est pas installé : ignoré", name)
+    return available or ["none"]
+
+
+def build_sft_config(cfg: Config, out_dir: Path, has_eval: bool):
+    from trl import SFTConfig
+
+    t = cfg.training
+    cuda = torch.cuda.is_available()
+    bf16 = cuda and torch.cuda.is_bf16_supported()
+    optim = t.optim
+    if not cuda and any(k in optim for k in ("paged", "8bit", "bnb")):
+        log.warning("Optimiseur %s indisponible sans GPU : adamw_torch", optim)
+        optim = "adamw_torch"
+    best_metric = t.metric_for_best_model
+    kwargs = dict(
+        output_dir=str(out_dir / "checkpoints"),
+        num_train_epochs=t.num_train_epochs,
+        max_steps=t.max_steps,
+        per_device_train_batch_size=t.per_device_train_batch_size,
+        per_device_eval_batch_size=t.per_device_eval_batch_size,
+        gradient_accumulation_steps=t.gradient_accumulation_steps,
+        learning_rate=t.learning_rate,
+        lr_scheduler_type=t.lr_scheduler_type,
+        warmup_steps=t.warmup_ratio,  # flottant < 1 : fraction des pas d'entraînement
+        weight_decay=t.weight_decay,
+        max_grad_norm=t.max_grad_norm,
+        optim=optim,
+        bf16=bf16,
+        fp16=cuda and not bf16,
+        tf32=True if cuda and torch.cuda.get_device_capability()[0] >= 8 else None,
+        gradient_checkpointing=t.gradient_checkpointing,
+        logging_steps=t.logging_steps,
+        eval_strategy="steps" if has_eval else "no",
+        eval_steps=t.eval_steps,
+        save_strategy="steps",
+        save_steps=t.eval_steps,
+        save_total_limit=t.save_total_limit,
+        load_best_model_at_end=has_eval and t.load_best_model_at_end,
+        metric_for_best_model=best_metric if has_eval else None,
+        greater_is_better=("loss" not in best_metric) if has_eval else None,
+        report_to=_report_to(t.report_to),
+        seed=t.seed,
+        data_seed=cfg.data.seed,
+        dataloader_num_workers=t.dataloader_num_workers,
+        # Spécifique TRL : la perte ne porte que sur la réponse (Gherkin), jamais sur le prompt.
+        max_length=cfg.data.max_length,
+        completion_only_loss=True,
+        packing=False,
+    )
+    kwargs.update(t.extra_args)
+    return SFTConfig(**kwargs)
+
+
+def build_lora_config(cfg: Config):
+    from peft import LoraConfig
+
+    lc = cfg.lora
+    return LoraConfig(
+        r=lc.r,
+        lora_alpha=lc.alpha,
+        lora_dropout=lc.dropout,
+        target_modules=lc.target_modules,
+        use_rslora=lc.use_rslora,
+        use_dora=lc.use_dora,
+        bias="none",
+        task_type="CAUSAL_LM",
+    )
+
+
+def make_trainer_class():
+    from trl import SFTTrainer
+
+    class GherkinSFTTrainer(SFTTrainer):
+        """SFTTrainer qui ajoute, à chaque évaluation, une mesure de qualité sur des Gherkin générés."""
+
+        def __init__(self, *args, quality_probe=None, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.quality_probe = quality_probe
+
+        def evaluate(self, eval_dataset=None, ignore_keys=None, metric_key_prefix="eval"):
+            metrics = super().evaluate(eval_dataset=eval_dataset, ignore_keys=ignore_keys,
+                                       metric_key_prefix=metric_key_prefix)
+            if self.quality_probe is not None and metric_key_prefix == "eval":
+                extra = {f"{metric_key_prefix}_{k}": v for k, v in self.quality_probe(self.model).items()}
+                self.log(extra)
+                metrics.update(extra)
+            return metrics
+
+    return GherkinSFTTrainer
+
+
+def run_training(cfg: Config) -> Path:
+    from datasets import Dataset
+    from transformers import EarlyStoppingCallback, set_seed
+
+    out_dir = Path(cfg.training.output_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    add_file_logging(out_dir / "train.log")
+    save_config(cfg, out_dir / "config.yaml")
+    set_seed(cfg.training.seed)
+    if torch.cuda.is_available():
+        torch.backends.cuda.matmul.allow_tf32 = True
+        torch.backends.cudnn.allow_tf32 = True
+
+    tokenizer = load_tokenizer(cfg.model.name_or_path, cfg.model.revision)
+    train_pairs, eval_pairs, _ = prepare_data(cfg, tokenizer, out_dir)
+    has_eval = bool(eval_pairs)
+    train_ds = Dataset.from_list(to_examples(train_pairs, cfg))
+    eval_ds = Dataset.from_list(to_examples(eval_pairs, cfg)) if has_eval else None
+
+    model = load_base_model(cfg.model, training=True)
+    sft_config = build_sft_config(cfg, out_dir, has_eval)
+
+    quality_probe = None
+    if has_eval and cfg.eval.probe_samples > 0:
+        probe_pairs = eval_pairs[: cfg.eval.probe_samples]
+        probe_params = GenerationParams(max_new_tokens=cfg.eval.probe_max_new_tokens, batch_size=cfg.eval.batch_size)
+
+        def quality_probe(m):
+            return probe(m, tokenizer, probe_pairs, cfg.prompt.system_prompt, cfg.prompt.user_template,
+                         probe_params, cfg.data.expected_language)
+
+    callbacks = []
+    if has_eval and cfg.training.early_stopping_patience and sft_config.load_best_model_at_end:
+        callbacks.append(EarlyStoppingCallback(early_stopping_patience=cfg.training.early_stopping_patience))
+
+    trainer = make_trainer_class()(
+        model=model,
+        args=sft_config,
+        train_dataset=train_ds,
+        eval_dataset=eval_ds,
+        processing_class=tokenizer,
+        peft_config=build_lora_config(cfg),
+        callbacks=callbacks,
+        quality_probe=quality_probe,
+    )
+    trainable, total = count_parameters(trainer.model)
+    log.info("Paramètres entraînables : %s / %s (%.2f %%)", f"{trainable:,}", f"{total:,}", 100 * trainable / total)
+
+    resume = cfg.training.resume_from_checkpoint
+    train_result = trainer.train(resume_from_checkpoint=True if resume == "last" else resume)
+
+    adapter_dir = out_dir / "adapter"
+    trainer.save_model(str(adapter_dir))
+    tokenizer.save_pretrained(str(adapter_dir))
+    write_run_info(adapter_dir, {
+        "base_model": cfg.model.name_or_path,
+        "base_revision": cfg.model.revision,
+        "system_prompt": cfg.prompt.system_prompt,
+        "user_template": cfg.prompt.user_template,
+        "expected_language": cfg.data.expected_language,
+        "max_length": cfg.data.max_length,
+        "train_pairs": len(train_pairs),
+        "eval_pairs": len(eval_pairs),
+        "best_checkpoint": trainer.state.best_model_checkpoint,
+        "git_commit": _git_commit(),
+        "date": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+    })
+    metrics = {"train": train_result.metrics}
+    if has_eval:
+        metrics["eval"] = trainer.evaluate()
+    (out_dir / "metrics_entrainement.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")
+    log.info("Adaptateur enregistré dans %s", adapter_dir)
+
+    if has_eval and cfg.eval.run_after_training:
+        e = cfg.eval
+        eval_subset = eval_pairs[: e.max_samples] if e.max_samples else eval_pairs
+        params = GenerationParams(e.max_new_tokens, e.batch_size, e.do_sample, e.temperature, e.top_p,
+                                  e.repetition_penalty)
+        final = evaluate_pairs(trainer.model, tokenizer, eval_subset, cfg.prompt.system_prompt,
+                               cfg.prompt.user_template, params, cfg.data.expected_language,
+                               out_dir / "eval", label=out_dir.name)
+        log.info("Évaluation finale : %s", {k: final[k] for k in ("score_qualite", "syntaxe_ok", "tronque")})
+    return adapter_dir
