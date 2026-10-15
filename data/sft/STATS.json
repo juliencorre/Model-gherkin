@@ -1,0 +1,40 @@
+{
+ "train": {
+  "paires": 2052,
+  "ecartees": {},
+  "par_source": {
+   "catala": 95,
+   "publicodes": 74,
+   "service_public": 646,
+   "catala_reste": 137,
+   "publicodes_reste": 138,
+   "legi": 471,
+   "service_public_2": 254,
+   "legi_2": 237
+  }
+ },
+ "val": {
+  "paires": 93,
+  "ecartees": {},
+  "par_source": {
+   "publicodes": 3,
+   "service_public": 38,
+   "legi": 25,
+   "service_public_2": 16,
+   "legi_2": 11
+  }
+ },
+ "test": {
+  "paires": 99,
+  "ecartees": {},
+  "par_source": {
+   "catala": 4,
+   "publicodes": 2,
+   "service_public": 35,
+   "publicodes_reste": 15,
+   "legi": 19,
+   "service_public_2": 11,
+   "legi_2": 13
+  }
+ }
+}

@@ -1,0 +1,35 @@
+# language: fr
+
+Fonctionnalité: Export d'un CSV
+
+  Contexte:
+    Sachant que je suis "marie.curie@gouv.fr" avec le SIRET 123 de l'organisation "DINUM"
+    Et que je me pro-connecte
+    Et que je rajoute un site "https://foobar.com/"
+    Et que le site "https://foobar.com/" renvoie une réponse HTML normale pour la page d'accueil
+    Et que le site "https://foobar.com/" renvoie une réponse HTML normale pour la déclaration d'accessibilité
+
+  Scénario: je peux exporter le résultat en CSV
+    Quand toutes les tâches de fond sont terminées
+    Et que je choisis "Mes évaluations" dans le menu principal
+    Et que je clique sur "Export CSV"
+    Alors la page retourne un CSV dont une ligne commence par "foobar.com;https://foobar.com"
+
+  Scénario: je peux exporter uniquement le site sélectionné après filtre et tri
+    Sachant que je possède un fichier "tmp/sites.csv" qui contient
+      """
+      url;tags
+      https://beta.gouv.fr;beta
+      https://numerique.gouv.fr;gouv,public
+      https://www.suresnes.fr;public
+      """
+    Et que les sites suivants renvoient des réponses HTML normales pour leur page d'accueil et leur déclaration d'accessibilité :
+      | https://beta.gouv.fr/      |
+      | https://numerique.gouv.fr/ |
+      | https://www.suresnes.fr/   |
+    Et que j'importe le fichier CSV "tmp/sites.csv"
+    Et que je choisis "Mes évaluations" dans le menu principal
+    Et que je clique sur "Trier par Site croissant"
+    Et que je filtre par étiquette "public"
+    Et que je clique sur "Export CSV"
+    Alors la page retourne un CSV qui contient strictement les sites "numerique.gouv.fr, suresnes.fr"

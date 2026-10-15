@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "moduleResolution": "Node",
+    "declaration": true,
+    "declarationMap": true,
+    "strict": true,
+    "target": "ES2019",
+    "sourceMap": true,
+    "outDir": "dist",
+    "baseUrl": ".",
+    "esModuleInterop": true,
+    "jsx": "react",
+    "lib": ["dom", "es2019"],
+    "module": "commonjs",
+    "skipLibCheck": true
+  },
+  "include": [
+    "src/**/*.ts*"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

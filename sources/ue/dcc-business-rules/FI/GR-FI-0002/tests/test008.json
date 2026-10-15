@@ -1,0 +1,16 @@
+{
+    "name": "TRUE if recovery certificate issuer = Joint Authority of the Helsinki and Uusimaa Hospital District & has not elapsed more than 30 days than date of recovery",
+    "payload": {
+      "r": [
+        {
+          "df": "2023-03-25",
+          "ci": "Joint Authority of the Helsinki and Uusimaa Hospital District"
+        }
+      ]
+    },
+    "expected": true,
+    "external": {
+      "validationClock": "2023-04-15T00:00:00+00:00"
+    }
+  }
+  

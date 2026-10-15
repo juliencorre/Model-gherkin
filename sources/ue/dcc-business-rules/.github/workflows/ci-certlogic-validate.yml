@@ -1,0 +1,36 @@
+name: Validation and Testing of Rule Sets
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [15.x]
+    steps:
+     - uses: actions/checkout@v2
+     - name: Install Node
+       uses: actions/setup-node@v1
+       with:
+          node-version: '15.x'
+     - name: Run build script
+       run:  sh build.sh
+     - name: Make compressed value sets available as JSON
+       uses: actions/upload-artifact@v2
+       with:
+         name: compressed-valueSets.json
+         path: ${{ github.workspace }}/valuesets/valueSets.json
+     - name: Publish gathered JSON
+       uses: actions/upload-artifact@v2
+       with:
+         name: gathered-JSON
+         path: ${{ github.workspace }}/out/*.json
+     - name: Publish generated HTML
+       uses: actions/upload-artifact@v2
+       with:
+          name: rules-html
+          path: ${{ github.workspace }}/html

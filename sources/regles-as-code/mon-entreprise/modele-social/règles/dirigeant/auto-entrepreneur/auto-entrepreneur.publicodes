@@ -1,0 +1,87 @@
+dirigeant . auto-entrepreneur:
+  valeur: régime social = 'auto-entrepreneur'
+  par défaut: non
+  icônes: 🚶
+  description: |
+    L’auto-entreprise est une entreprise individuelle simplifiée. À l’origine connu
+    sous l’appellation « auto-entrepreneur », le régime de « micro-entrepreneur » est
+    un régime de travailleur indépendant créé pour simplifier la gestion
+    administrative, notamment en remplaçant toutes les cotisations sociales par un
+    prélèvement unique mensuel.
+
+dirigeant . auto-entrepreneur . revenu net:
+  arrondi: oui
+  unité: €/an
+  identifiant court: auto-entrepreneur-net
+  résumé: Avant impôt
+  question: Quel revenu avant impôt voulez-vous toucher ?
+  description: Il s’agit du revenu après déductions des cotisations, avant le
+    paiement de l’impôt sur le revenu.
+  valeur: entreprise . chiffre d'affaires - cotisations et contributions
+
+dirigeant . auto-entrepreneur . revenu net . après impôt:
+  identifiant court: auto-entrepreneur-net-apres-impot
+  résumé: Avant déduction des dépenses liées à l’activité
+  unité: €/an
+  arrondi: oui
+  question: Quel est le revenu net après impôt souhaité ?
+  description: >-
+    Le revenu net de l’auto-entrepreneur après déduction de l’impôt sur le
+    revenu et des cotisations sociales.
+
+
+    **Attention :** Pour bien évaluer la rentabilité de l’entreprise, il ne faut pas
+    oublier de retrancher à ce montant les dépenses engagées dans le cadre de
+    l’activité. Cela peut inclure par exemple :
+
+    - L’achat des matières premières
+
+    - L’achat des outils / matériel
+
+    - L’abonnement à des services payants
+
+    - La location d’un local
+
+    - etc…
+  valeur: revenu net - rémunération . impôt
+
+dirigeant . auto-entrepreneur . chiffre d'affaires:
+  question: Quel est votre chiffre d’affaires ?
+  résumé: Montant total des recettes (hors taxe)
+  unité: €/an
+  inversion numérique:
+    - revenu net
+    - revenu net . après impôt
+
+dirigeant . auto-entrepreneur . affiliation CIPAV:
+  déprécié: oui
+  valeur: Cipav
+
+dirigeant . auto-entrepreneur . Cipav:
+  rend non applicable: entreprise . activité . revenus mixtes
+  une de ces conditions:
+    - entreprise . activité . nature . libérale . réglementée
+    - toutes ces conditions:
+        - entreprise . activité . nature = 'libérale'
+        - entreprise . date de création < 01/2018
+        - adhérent = oui
+  avec:
+    adhérent:
+      question: Êtes-vous adhérent à la Cipav ?
+      par défaut: non
+      description: |
+        Depuis le 1er janvier 2018, les auto-entreprises d’activité libérale non
+        réglementée sont affiliées à la Sécurité sociale pour les indépendants (SSI).
+
+        Les auto-entreprises d’activité libérale non réglementée créées avant le 1er
+        janvier 2018, qui étaient adhérentes à la Cipav, demeurent à la Cipav.
+
+        Les auto-entrepreneurs concernés disposent toutefois d’un droit d’option
+        durant cinq ans afin de rejoindre la Sécurité sociale pour les indépendants
+        (SSI).
+      références:
+        Qui est assuré à la Cipav ?: https://www.lacipav.fr/qui-est-assure-cipav
+
+dirigeant . auto-entrepreneur . Cipav . retraite complémentaire:
+  description: Montant cotisé pour la retraite complémentaire.
+  valeur: dirigeant . auto-entrepreneur . cotisations et contributions . cotisations . service BNC Cipav . répartition . retraite complémentaire

@@ -1,0 +1,1455 @@
+impôt:
+  experimental: oui
+  icônes: 🏛️
+  description: Cet ensemble de formules est un modèle simplifié de l’impôt sur le revenu.
+  titre: impôt sur le revenu
+
+impôt . montant:
+  titre: Impôt sur le revenu
+  somme:
+    - produit:
+        - revenu imposable
+        - taux d'imposition
+    - dirigeant . auto-entrepreneur . impôt . versement libératoire . montant
+    - impôt . dividendes . PFU
+  arrondi: oui
+  unité: €/an
+
+impôt . taux d'imposition:
+  formule:
+    variations:
+      - si: méthode de calcul . taux neutre
+        alors: taux neutre d'impôt sur le revenu
+      - si: méthode de calcul . taux personnalisé
+        alors: taux personnalisé
+      - si: méthode de calcul . barème standard
+        alors: foyer fiscal . taux effectif
+
+impôt . méthode de calcul:
+  titre: Méthode de calcul de l’impôt sur le revenu
+  description: |
+    Nous avons implémenté trois façon de calculer l’impôt sur le revenu :
+    - *Le taux personnalisé* : indiqué sur votre avis d’imposition
+    - *Le taux neutre* : pour un célibataire sans enfant
+    - *Le barème standard * : la formule "officielle" utilisée par l’administration
+    fiscale pour obtenir le taux d’imposition
+
+    En remplissant votre taux personnalisé, vous serez au plus proche de votre
+    situation réelle. Le taux neutre peut être intéressant dans le cas où vous
+    n’avez pas transmis votre taux personnalisé à l’employeur et que vous souhaitez
+    comparer les résultats du simulateur à votre fiche de paie. Le barème standard
+    vous donne un résultat plus précis que le taux neutre pour un célibataire sans
+    enfant.
+  question: Comment souhaitez-vous calculer l’impôt sur le revenu ?
+  # applicable si: revenu imposable > 0
+  # bizarrement, cette condition ne semble pas marcher, on se résout donc à utiliser
+  # une version plus "hacky" et moins proche de la loi. Elle posera problème le jour
+  # où l’on aura a calculer l’impot avec plusieurs sources de revenu
+  non applicable si: dirigeant . auto-entrepreneur . impôt . versement libératoire > 0
+  par défaut: par défaut
+  une possibilité:
+    - taux neutre
+    - taux personnalisé
+    - barème standard
+  références:
+    Différence taux neutre / personnalisé: https://www.impots.gouv.fr/particulier/questions/comment-gerer-mon-prelevement-la-source
+    Calcul du taux d’imposition: https://www.economie.gouv.fr/files/files/ESPACE-EVENEMENTIEL/PAS/Fiche_de_calcul_taux_simplifiee.pdf
+
+  avec:
+    par défaut: "'barème standard'"
+
+impôt . méthode de calcul . taux neutre:
+  non applicable si: dirigeant
+  titre: avec le taux neutre
+  description: Si vous ne connaissez pas votre taux personnalisé, ou si vous
+    voulez connaître votre impôt à la source dans le cas où vous avez choisi de
+    ne pas communiquer à votre taux à l’employeur, le calcul au taux neutre
+    correspond à une imposition pour un célibataire sans enfant et sans autres
+    revenus / charges.
+  valeur: impôt . méthode de calcul = 'taux neutre'
+
+impôt . méthode de calcul . taux personnalisé:
+  titre: avec un taux personnalisé
+  description: Vous pouvez utiliser directement le taux personnalisé communiqué
+    par l’administration fiscale pour calculer votre impôt. Pour le connaître,
+    vous pouvez-vous rendre sur votre [espace fiscal
+    personnel](https://impots.gouv.fr).
+  valeur: impôt . méthode de calcul = 'taux personnalisé'
+
+impôt . méthode de calcul . barème standard:
+  titre: avec le barème standard
+  description:
+    Le calcul "officiel" de l’impôt, celui sur lequel l’administration
+    fiscale se base pour calculer votre taux d’imposition.
+  valeur: impôt . méthode de calcul = 'barème standard'
+
+impôt . méthode de calcul . PFU:
+  titre: avec prélèvement forfaitaire unique
+  description: Calcul de l’impôt des revenus de capitaux mobiliers avec le
+    prélèvement forfaitaire unique (ou "flat tax")
+  valeur: impôt . méthode de calcul = 'PFU'
+
+impôt . revenu imposable:
+  description: |
+    C’est le revenu à prendre en compte pour calculer l’impôt avec un taux moyen
+    d’imposition (neutre ou personnalisé).
+  somme:
+    - variations:
+        - si: dirigeant
+          alors: dirigeant . rémunération . net . imposable
+        - sinon:
+            valeur: salarié . rémunération . net . imposable
+            abattement: abattement contrat court
+    - bénéficiaire . dividendes . imposables
+
+impôt . revenu imposable . abattement contrat court:
+  description: Lorsque la durée d’un contrat de travail est inférieure à 2 mois,
+    il est possible d’appliquer un abattement pour diminuer le montant du
+    prélèvement à la source.
+  applicable si:
+    toutes ces conditions:
+      - méthode de calcul . taux neutre
+      - salarié . contrat . CDD . durée <= 2 mois
+  formule:
+    valeur: 50% * SMIC . net imposable * 1 mois/an
+    arrondi: oui
+  note: Cet abattement s’applique aussi pour les conventions de stage ou les
+    contrats de mission (intérim) de moins de 2 mois.
+  références:
+    Bofip - dispositions spécifiques aux contrats courts: https://bofip.impots.gouv.fr/bofip/11252-PGP.html?identifiant=BOI-IR-PAS-20-20-30-10-20180515
+
+impôt . taux neutre d'impôt sur le revenu . barème Guadeloupe Réunion Martinique:
+  icônes: 🇬🇵 🇷🇪 🇲🇶
+  applicable si: établissement . commune . département . outre-mer . Guadeloupe
+    Réunion Martinique
+  références:
+    Article 204 H du code des impôts: https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000042907548/
+  remplace: taux neutre d'impôt sur le revenu
+  variations:
+    - si: date >= 01/01/2026
+      alors:
+        grille:
+          assiette: revenu imposable
+          tranches:
+            - montant: 0%
+              plafond: 1875 €/mois
+            - montant: 0.5%
+              plafond: 1989 €/mois
+            - montant: 1.3%
+              plafond: 2191 €/mois
+            - montant: 2.1%
+              plafond: 2392 €/mois
+            - montant: 2.9%
+              plafond: 2642 €/mois
+            - montant: 3.5%
+              plafond: 2786 €/mois
+            - montant: 4.1%
+              plafond: 2881 €/mois
+            - montant: 5.3%
+              plafond: 3170 €/mois
+            - montant: 7.5%
+              plafond: 3920 €/mois
+            - montant: 9.9%
+              plafond: 5016 €/mois
+            - montant: 11.9%
+              plafond: 5697 €/mois
+            - montant: 13.8%
+              plafond: 6599 €/mois
+            - montant: 15.8%
+              plafond: 7907 €/mois
+            - montant: 17.9%
+              plafond: 8789 €/mois
+            - montant: 20%
+              plafond: 9989 €/mois
+            - montant: 24%
+              plafond: 13738 €/mois
+            - montant: 28%
+              plafond: 18253 €/mois
+            - montant: 33%
+              plafond: 27858 €/mois
+            - montant: 38%
+              plafond: 60893 €/mois
+            - montant: 43%
+    - si: date >= 01/05/2025
+      alors:
+        grille:
+          assiette: revenu imposable
+          tranches:
+            - montant: 0%
+              plafond: 1858 €/mois
+            - montant: 0.5%
+              plafond: 1971 €/mois
+            - montant: 1.3%
+              plafond: 2171 €/mois
+            - montant: 2.1%
+              plafond: 2371 €/mois
+            - montant: 2.9%
+              plafond: 2618 €/mois
+            - montant: 3.5%
+              plafond: 2761 €/mois
+            - montant: 4.1%
+              plafond: 2855 €/mois
+            - montant: 5.3%
+              plafond: 3142 €/mois
+            - montant: 7.5%
+              plafond: 3885 €/mois
+            - montant: 9.9%
+              plafond: 4971 €/mois
+            - montant: 11.9%
+              plafond: 5646 €/mois
+            - montant: 13.8%
+              plafond: 6540 €/mois
+            - montant: 15.8%
+              plafond: 7836 €/mois
+            - montant: 17.9%
+              plafond: 8711 €/mois
+            - montant: 20%
+              plafond: 9900 €/mois
+            - montant: 24%
+              plafond: 13615 €/mois
+            - montant: 28%
+              plafond: 18090 €/mois
+            - montant: 33%
+              plafond: 27610 €/mois
+            - montant: 38%
+              plafond: 60350 €/mois
+            - montant: 43%
+    - si: date >= 01/01/2024
+      alors:
+        grille:
+          assiette: revenu imposable
+          tranches:
+            - montant: 0%
+              plafond: 1825 €/mois
+            - montant: 0.5%
+              plafond: 1936 €/mois
+            - montant: 1.3%
+              plafond: 2133 €/mois
+            - montant: 2.1%
+              plafond: 2329 €/mois
+            - montant: 2.9%
+              plafond: 2572 €/mois
+            - montant: 3.5%
+              plafond: 2712 €/mois
+            - montant: 4.1%
+              plafond: 2805 €/mois
+            - montant: 5.3%
+              plafond: 3086 €/mois
+            - montant: 7.5%
+              plafond: 3816 €/mois
+            - montant: 9.9%
+              plafond: 4883 €/mois
+            - montant: 11.9%
+              plafond: 5546 €/mois
+            - montant: 13.8%
+              plafond: 6424 €/mois
+            - montant: 15.8%
+              plafond: 7679 €/mois
+            - montant: 17.9%
+              plafond: 8557 €/mois
+            - montant: 20%
+              plafond: 9725 €/mois
+            - montant: 24%
+              plafond: 13374 €/mois
+            - montant: 28%
+              plafond: 17770 €/mois
+            - montant: 33%
+              plafond: 27122 €/mois
+            - montant: 38%
+              plafond: 59283 €/mois
+            - montant: 43%
+    - si: date >= 01/01/2023
+      alors:
+        grille:
+          assiette: revenu imposable
+          tranches:
+            - montant: 0%
+              plafond: 1741 €/mois
+            - montant: 0.5%
+              plafond: 1847 €/mois
+            - montant: 1.3%
+              plafond: 2035 €/mois
+            - montant: 2.1%
+              plafond: 2222 €/mois
+            - montant: 2.9%
+              plafond: 2454 €/mois
+            - montant: 3.5%
+              plafond: 2588 €/mois
+            - montant: 4.1%
+              plafond: 2677 €/mois
+            - montant: 5.3%
+              plafond: 2945 €/mois
+            - montant: 7.5%
+              plafond: 3641 €/mois
+            - montant: 9.9%
+              plafond: 4659 €/mois
+            - montant: 11.9%
+              plafond: 5292 €/mois
+            - montant: 13.8%
+              plafond: 6130 €/mois
+            - montant: 15.8%
+              plafond: 7344 €/mois
+            - montant: 17.9%
+              plafond: 8165 €/mois
+            - montant: 20%
+              plafond: 9280 €/mois
+            - montant: 24%
+              plafond: 12761 €/mois
+            - montant: 28%
+              plafond: 16956 €/mois
+            - montant: 33%
+              plafond: 25880 €/mois
+            - montant: 38%
+              plafond: 56568 €/mois
+            - montant: 43%
+    - si: date >= 01/01/2022
+      alors:
+        grille:
+          assiette: revenu imposable
+          tranches:
+            - montant: 0%
+              plafond: 1652 €/mois
+            - montant: 0.5%
+              plafond: 1752 €/mois
+            - montant: 1.3%
+              plafond: 1931 €/mois
+            - montant: 2.1%
+              plafond: 2108 €/mois
+            - montant: 2.9%
+              plafond: 2328 €/mois
+            - montant: 3.5%
+              plafond: 2455 €/mois
+            - montant: 4.1%
+              plafond: 2540 €/mois
+            - montant: 5.3%
+              plafond: 2794 €/mois
+            - montant: 7.5%
+              plafond: 3454 €/mois
+            - montant: 9.9%
+              plafond: 4420 €/mois
+            - montant: 11.9%
+              plafond: 5021 €/mois
+            - montant: 13.8%
+              plafond: 5816 €/mois
+            - montant: 15.8%
+              plafond: 6968 €/mois
+            - montant: 17.9%
+              plafond: 7747 €/mois
+            - montant: 20%
+              plafond: 8805 €/mois
+            - montant: 24%
+              plafond: 12107 €/mois
+            - montant: 28%
+              plafond: 16087 €/mois
+            - montant: 33%
+              plafond: 24554 €/mois
+            - montant: 38%
+              plafond: 53670 €/mois
+            - montant: 43%
+    - sinon:
+        grille:
+          assiette: revenu imposable
+          tranches:
+            - montant: 0%
+              plafond: 1626 €/mois
+            - montant: 0.5%
+              plafond: 1724 €/mois
+            - montant: 1.3%
+              plafond: 1900 €/mois
+            - montant: 2.1%
+              plafond: 2075 €/mois
+            - montant: 2.9%
+              plafond: 2292 €/mois
+            - montant: 3.5%
+              plafond: 2417 €/mois
+            - montant: 4.1%
+              plafond: 2500 €/mois
+            - montant: 5.3%
+              plafond: 2750 €/mois
+            - montant: 7.5%
+              plafond: 3400 €/mois
+            - montant: 9.9%
+              plafond: 4350 €/mois
+            - montant: 11.9%
+              plafond: 4942 €/mois
+            - montant: 13.8%
+              plafond: 5725 €/mois
+            - montant: 15.8%
+              plafond: 6858 €/mois
+            - montant: 17.9%
+              plafond: 7625 €/mois
+            - montant: 20%
+              plafond: 8667 €/mois
+            - montant: 24%
+              plafond: 11917 €/mois
+            - montant: 28%
+              plafond: 15833 €/mois
+            - montant: 33%
+              plafond: 24167 €/mois
+            - montant: 38%
+              plafond: 52825 €/mois
+            - montant: 43%
+
+impôt . taux neutre d'impôt sur le revenu . barème Guyane Mayotte:
+  icônes: 🇬🇫 🇾🇹
+  applicable si:
+    par défaut: non
+    une de ces conditions:
+      - établissement . commune . département = 'Guyane'
+      - établissement . commune . département = 'Mayotte'
+  remplace: taux neutre d'impôt sur le revenu
+  références:
+    Article 204 H du code des impôts: https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000042907548/
+
+  variations:
+    - si: date >= 01/01/2026
+      alors:
+        grille:
+          assiette: revenu imposable
+          tranches:
+            - montant: 0%
+              plafond: 2008 €/mois
+            - montant: 0.5%
+              plafond: 2170 €/mois
+            - montant: 1.3%
+              plafond: 2420 €/mois
+            - montant: 2.1%
+              plafond: 2728 €/mois
+            - montant: 2.9%
+              plafond: 2833 €/mois
+            - montant: 3.5%
+              plafond: 2930 €/mois
+            - montant: 4.1%
+              plafond: 3026 €/mois
+            - montant: 5.3%
+              plafond: 3362 €/mois
+            - montant: 7.5%
+              plafond: 4639 €/mois
+            - montant: 9.9%
+              plafond: 6005 €/mois
+            - montant: 11.9%
+              plafond: 6772 €/mois
+            - montant: 13.8%
+              plafond: 7858 €/mois
+            - montant: 15.8%
+              plafond: 8644 €/mois
+            - montant: 17.9%
+              plafond: 9577 €/mois
+            - montant: 20%
+              plafond: 11115 €/mois
+            - montant: 24%
+              plafond: 14953 €/mois
+            - montant: 28%
+              plafond: 19020 €/mois
+            - montant: 33%
+              plafond: 30482 €/mois
+            - montant: 38%
+              plafond: 64341 €/mois
+            - montant: 43%
+    - si: date >= 01/05/2025
+      alors:
+        grille:
+          assiette: revenu imposable
+          tranches:
+            - montant: 0%
+              plafond: 1990 €/mois
+            - montant: 0.5%
+              plafond: 2151 €/mois
+            - montant: 1.3%
+              plafond: 2393 €/mois
+            - montant: 2.1%
+              plafond: 2704 €/mois
+            - montant: 2.9%
+              plafond: 2808 €/mois
+            - montant: 3.5%
+              plafond: 2904 €/mois
+            - montant: 4.1%
+              plafond: 2999 €/mois
+            - montant: 5.3%
+              plafond: 3332 €/mois
+            - montant: 7.5%
+              plafond: 4598 €/mois
+            - montant: 9.9%
+              plafond: 5951 €/mois
+            - montant: 11.9%
+              plafond: 6712 €/mois
+            - montant: 13.8%
+              plafond: 7788 €/mois
+            - montant: 15.8%
+              plafond: 8567 €/mois
+            - montant: 17.9%
+              plafond: 9492 €/mois
+            - montant: 20%
+              plafond: 11016 €/mois
+            - montant: 24%
+              plafond: 14820 €/mois
+            - montant: 28%
+              plafond: 18850 €/mois
+            - montant: 33%
+              plafond: 30210 €/mois
+            - montant: 38%
+              plafond: 63767 €/mois
+            - montant: 43%
+    - si: date >= 01/01/2024
+      alors:
+        grille:
+          assiette: revenu imposable
+          tranches:
+            - montant: 0%
+              plafond: 1955 €/mois
+            - montant: 0.5%
+              plafond: 2113 €/mois
+            - montant: 1.3%
+              plafond: 2356 €/mois
+            - montant: 2.1%
+              plafond: 2656 €/mois
+            - montant: 2.9%
+              plafond: 2758 €/mois
+            - montant: 3.5%
+              plafond: 2853 €/mois
+            - montant: 4.1%
+              plafond: 2946 €/mois
+            - montant: 5.3%
+              plafond: 3273 €/mois
+            - montant: 7.5%
+              plafond: 4517 €/mois
+            - montant: 9.9%
+              plafond: 5846 €/mois
+            - montant: 11.9%
+              plafond: 6593 €/mois
+            - montant: 13.8%
+              plafond: 7650 €/mois
+            - montant: 15.8%
+              plafond: 8416 €/mois
+            - montant: 17.9%
+              plafond: 9324 €/mois
+            - montant: 20%
+              plafond: 10821 €/mois
+            - montant: 24%
+              plafond: 14558 €/mois
+            - montant: 28%
+              plafond: 18517 €/mois
+            - montant: 33%
+              plafond: 29676 €/mois
+            - montant: 38%
+              plafond: 62639 €/mois
+            - montant: 43%
+    - si: date >= 01/01/2023
+      alors:
+        grille:
+          assiette: revenu imposable
+          tranches:
+            - montant: 0%
+              plafond: 1865 €/mois
+            - montant: 0.5%
+              plafond: 2016 €/mois
+            - montant: 1.3%
+              plafond: 2248 €/mois
+            - montant: 2.1%
+              plafond: 2534 €/mois
+            - montant: 2.9%
+              plafond: 2632 €/mois
+            - montant: 3.5%
+              plafond: 2722 €/mois
+            - montant: 4.1%
+              plafond: 2811 €/mois
+            - montant: 5.3%
+              plafond: 3123 €/mois
+            - montant: 7.5%
+              plafond: 4310 €/mois
+            - montant: 9.9%
+              plafond: 5578 €/mois
+            - montant: 11.9%
+              plafond: 6291 €/mois
+            - montant: 13.8%
+              plafond: 7300 €/mois
+            - montant: 15.8%
+              plafond: 8031 €/mois
+            - montant: 17.9%
+              plafond: 8897 €/mois
+            - montant: 20%
+              plafond: 10325 €/mois
+            - montant: 24%
+              plafond: 13891 €/mois
+            - montant: 28%
+              plafond: 17669 €/mois
+            - montant: 33%
+              plafond: 28317 €/mois
+            - montant: 38%
+              plafond: 59770 €/mois
+            - montant: 43%
+    - si: date >= 01/01/2022
+      alors:
+        grille:
+          assiette: revenu imposable
+          tranches:
+            - montant: 0%
+              plafond: 1769 €/mois
+            - montant: 0.5%
+              plafond: 1913 €/mois
+            - montant: 1.3%
+              plafond: 2133 €/mois
+            - montant: 2.1%
+              plafond: 2404 €/mois
+            - montant: 2.9%
+              plafond: 2497 €/mois
+            - montant: 3.5%
+              plafond: 2583 €/mois
+            - montant: 4.1%
+              plafond: 2667 €/mois
+            - montant: 5.3%
+              plafond: 2963 €/mois
+            - montant: 7.5%
+              plafond: 4089 €/mois
+            - montant: 9.9%
+              plafond: 5292 €/mois
+            - montant: 11.9%
+              plafond: 5969 €/mois
+            - montant: 13.8%
+              plafond: 6926 €/mois
+            - montant: 15.8%
+              plafond: 7620 €/mois
+            - montant: 17.9%
+              plafond: 8441 €/mois
+            - montant: 20%
+              plafond: 9796 €/mois
+            - montant: 24%
+              plafond: 13179 €/mois
+            - montant: 28%
+              plafond: 16764 €/mois
+            - montant: 33%
+              plafond: 26866 €/mois
+            - montant: 38%
+              plafond: 56708 €/mois
+            - montant: 43%
+    - sinon:
+        grille:
+          assiette: revenu imposable
+          tranches:
+            - montant: 0%
+              plafond: 1741 €/mois
+            - montant: 0.5%
+              plafond: 1883 €/mois
+            - montant: 1.3%
+              plafond: 2100 €/mois
+            - montant: 2.1%
+              plafond: 2367 €/mois
+            - montant: 2.9%
+              plafond: 2458 €/mois
+            - montant: 3.5%
+              plafond: 2542 €/mois
+            - montant: 4.1%
+              plafond: 2625 €/mois
+            - montant: 5.3%
+              plafond: 2917 €/mois
+            - montant: 7.5%
+              plafond: 4025 €/mois
+            - montant: 9.9%
+              plafond: 5208 €/mois
+            - montant: 11.9%
+              plafond: 5875 €/mois
+            - montant: 13.8%
+              plafond: 6817 €/mois
+            - montant: 15.8%
+              plafond: 7500 €/mois
+            - montant: 17.9%
+              plafond: 8308 €/mois
+            - montant: 20%
+              plafond: 9642 €/mois
+            - montant: 24%
+              plafond: 12971 €/mois
+            - montant: 28%
+              plafond: 16500 €/mois
+            - montant: 33%
+              plafond: 26443 €/mois
+            - montant: 38%
+              plafond: 55815 €/mois
+            - montant: 43%
+
+impôt . taux neutre d'impôt sur le revenu:
+  description: >
+    C’est le barème à appliquer sur le salaire mensuel imposable pour obtenir
+    l’impôt à payer mensuellement pour les salariés qui ne veulent pas révéler à
+    leur entreprise leur taux d’imposition (ce taux peut révéler par exemple des
+    revenus du patrimoine importants).
+  note: Attention, l’abattement de 10% est inclus implicitement dans ce barème.
+    L’assiette est donc bien le salaire imposable, et non le salaire imposable
+    abattu.
+
+  variations:
+    - si: date >= 01/01/2026
+      alors:
+        grille:
+          assiette: revenu imposable
+          tranches:
+            - plafond: 1635 €/mois
+              montant: 0%
+            - plafond: 1698 €/mois
+              montant: 0.5 %
+            - plafond: 1807 €/mois
+              montant: 1.3 %
+            - plafond: 1928 €/mois
+              montant: 2.1 %
+            - plafond: 2060 €/mois
+              montant: 2.9 %
+            - plafond: 2170 €/mois
+              montant: 3.5 %
+            - plafond: 2315 €/mois
+              montant: 4.1 %
+            - plafond: 2738 €/mois
+              montant: 5.3 %
+            - plafond: 3135 €/mois
+              montant: 7.5 %
+            - plafond: 3571 €/mois
+              montant: 9.9 %
+            - plafond: 4019 €/mois
+              montant: 11.9 %
+            - plafond: 4690 €/mois
+              montant: 13.8 %
+            - plafond: 5624 €/mois
+              montant: 15.8 %
+            - plafond: 7037 €/mois
+              montant: 17.9 %
+            - plafond: 8789 €/mois
+              montant: 20%
+            - plafond: 12200 €/mois
+              montant: 24%
+            - plafond: 16523 €/mois
+              montant: 28 %
+            - plafond: 25937 €/mois
+              montant: 33 %
+            - plafond: 55558 €/mois
+              montant: 38 %
+            - montant: 43 %
+    - si: date >= 01/05/2025
+      alors:
+        grille:
+          assiette: revenu imposable
+          tranches:
+            - plafond: 1620 €/mois
+              montant: 0%
+            - plafond: 1683 €/mois
+              montant: 0.5 %
+            - plafond: 1791 €/mois
+              montant: 1.3 %
+            - plafond: 1911 €/mois
+              montant: 2.1 %
+            - plafond: 2042 €/mois
+              montant: 2.9 %
+            - plafond: 2151 €/mois
+              montant: 3.5 %
+            - plafond: 2294 €/mois
+              montant: 4.1 %
+            - plafond: 2714 €/mois
+              montant: 5.3 %
+            - plafond: 3107 €/mois
+              montant: 7.5 %
+            - plafond: 3539 €/mois
+              montant: 9.9 %
+            - plafond: 3983 €/mois
+              montant: 11.9 %
+            - plafond: 4648 €/mois
+              montant: 13.8 %
+            - plafond: 5574 €/mois
+              montant: 15.8 %
+            - plafond: 6974 €/mois
+              montant: 17.9 %
+            - plafond: 8711 €/mois
+              montant: 20%
+            - plafond: 12091 €/mois
+              montant: 24%
+            - plafond: 16376 €/mois
+              montant: 28 %
+            - plafond: 25706 €/mois
+              montant: 33 %
+            - plafond: 55062 €/mois
+              montant: 38 %
+            - montant: 43 %
+    - si: date >= 01/01/2024
+      alors:
+        grille:
+          assiette: revenu imposable
+          tranches:
+            - plafond: 1591 €/mois
+              montant: 0%
+            - plafond: 1653 €/mois
+              montant: 0.5 %
+            - plafond: 1759 €/mois
+              montant: 1.3 %
+            - plafond: 1877 €/mois
+              montant: 2.1 %
+            - plafond: 2006 €/mois
+              montant: 2.9 %
+            - plafond: 2113 €/mois
+              montant: 3.5 %
+            - plafond: 2253 €/mois
+              montant: 4.1 %
+            - plafond: 2666 €/mois
+              montant: 5.3 %
+            - plafond: 3052 €/mois
+              montant: 7.5 %
+            - plafond: 3476 €/mois
+              montant: 9.9 %
+            - plafond: 3913 €/mois
+              montant: 11.9 %
+            - plafond: 4566 €/mois
+              montant: 13.8 %
+            - plafond: 5475 €/mois
+              montant: 15.8 %
+            - plafond: 6851 €/mois
+              montant: 17.9 %
+            - plafond: 8557 €/mois
+              montant: 20%
+            - plafond: 11877 €/mois
+              montant: 24%
+            - plafond: 16086 €/mois
+              montant: 28 %
+            - plafond: 25251 €/mois
+              montant: 33 %
+            - plafond: 54088 €/mois
+              montant: 38 %
+            - montant: 43 %
+    - si: date >= 01/01/2023
+      alors:
+        grille:
+          assiette: revenu imposable
+          tranches:
+            - plafond: 1518 €/mois
+              montant: 0%
+            - plafond: 1577 €/mois
+              montant: 0.5 %
+            - plafond: 1678 €/mois
+              montant: 1.3 %
+            - plafond: 1791 €/mois
+              montant: 2.1 %
+            - plafond: 1914 €/mois
+              montant: 2.9 %
+            - plafond: 2016 €/mois
+              montant: 3.5 %
+            - plafond: 2150 €/mois
+              montant: 4.1 %
+            - plafond: 2544 €/mois
+              montant: 5.3 %
+            - plafond: 2912 €/mois
+              montant: 7.5 %
+            - plafond: 3317 €/mois
+              montant: 9.9 %
+            - plafond: 3734 €/mois
+              montant: 11.9 %
+            - plafond: 4357 €/mois
+              montant: 13.8 %
+            - plafond: 5224 €/mois
+              montant: 15.8 %
+            - plafond: 6537 €/mois
+              montant: 17.9 %
+            - plafond: 8165 €/mois
+              montant: 20%
+            - plafond: 11333 €/mois
+              montant: 24%
+            - plafond: 15349 €/mois
+              montant: 28 %
+            - plafond: 24094 €/mois
+              montant: 33 %
+            - plafond: 51611 €/mois
+              montant: 38 %
+            - montant: 43 %
+
+    - si: date >= 01/01/2022
+      alors:
+        grille:
+          assiette: revenu imposable
+          tranches:
+            - montant: 0%
+              plafond: 1440 €/mois
+            - montant: 0.5%
+              plafond: 1496 €/mois
+            - montant: 1.3%
+              plafond: 1592 €/mois
+            - montant: 2.1%
+              plafond: 1699 €/mois
+            - montant: 2.9%
+              plafond: 1816 €/mois
+            - montant: 3.5%
+              plafond: 1913 €/mois
+            - montant: 4.1%
+              plafond: 2040 €/mois
+            - montant: 5.3%
+              plafond: 2414 €/mois
+            - montant: 7.5%
+              plafond: 2763 €/mois
+            - montant: 9.9%
+              plafond: 3147 €/mois
+            - montant: 11.9%
+              plafond: 3543 €/mois
+            - montant: 13.8%
+              plafond: 4134 €/mois
+            - montant: 15.8%
+              plafond: 4956 €/mois
+            - montant: 17.9%
+              plafond: 6202 €/mois
+            - montant: 20%
+              plafond: 7747 €/mois
+            - montant: 24%
+              plafond: 10752 €/mois
+            - montant: 28%
+              plafond: 14563 €/mois
+            - montant: 33%
+              plafond: 22860 €/mois
+            - montant: 38%
+              plafond: 48967 €/mois
+            - montant: 43%
+    - sinon:
+        grille:
+          assiette: revenu imposable
+          tranches:
+            - montant: 0%
+              plafond: 1420 €/mois
+            - montant: 0.5%
+              plafond: 1475 €/mois
+            - montant: 1.3%
+              plafond: 1570 €/mois
+            - montant: 2.1%
+              plafond: 1676 €/mois
+            - montant: 2.9%
+              plafond: 1791 €/mois
+            - montant: 3.5%
+              plafond: 1887 €/mois
+            - montant: 4.1%
+              plafond: 2012 €/mois
+            - montant: 5.3%
+              plafond: 2381 €/mois
+            - montant: 7.5%
+              plafond: 2725 €/mois
+            - montant: 9.9%
+              plafond: 3104 €/mois
+            - montant: 11.9%
+              plafond: 3494 €/mois
+            - montant: 13.8%
+              plafond: 4077 €/mois
+            - montant: 15.8%
+              plafond: 4888 €/mois
+            - montant: 17.9%
+              plafond: 6116 €/mois
+            - montant: 20%
+              plafond: 7640 €/mois
+            - montant: 24%
+              plafond: 10604 €/mois
+            - montant: 28%
+              plafond: 14362 €/mois
+            - montant: 33%
+              plafond: 22545 €/mois
+            - montant: 38%
+              plafond: 48292 €/mois
+            - montant: 43%
+  références:
+    BOFIP: https://bofip.impots.gouv.fr/bofip/11255-PGP.html
+    Article 204 H du code des impôts: https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000042907548/
+    Qu’est-ce que le taux neutre ?: https://www.economie.gouv.fr/particuliers/modifier-gerer-taux-prelevement-source#qu-est-ce-que-le-taux-non-person_5
+
+impôt . taux personnalisé:
+  titre: Taux d’imposition personnalisé
+  description: |
+    Votre taux moyen d’imposition personnalisé, que vous pouvez retrouver sur :
+      - une fiche de paie
+      - un avis d’imposition
+      - votre espace personnel [impots.gouv.fr](https://impots.gouv.fr)
+  applicable si: méthode de calcul . taux personnalisé
+  question: Quel est votre taux de prélèvement à la source ?
+  unité: '%'
+
+# TODO: "foyer fiscal" should be in its own top level namespace, but we put it
+# in the "impôt" namespace to have a better questions ordering
+impôt . foyer fiscal:
+  applicable si: méthode de calcul . barème standard
+  valeur: oui
+  icônes: 👨‍👩‍👧‍👦
+
+impôt . foyer fiscal . situation de famille:
+  question: Quelle est votre situation familiale ?
+  une possibilité:
+    - célibataire
+    - couple
+    - veuf
+  par défaut: "'célibataire'"
+
+impôt . foyer fiscal . situation de famille . célibataire:
+  titre: Célibataire / Divorcé(e) / Union libre
+
+impôt . foyer fiscal . situation de famille . couple:
+  titre: Marié(e)s / Pacsé(e)s
+
+impôt . foyer fiscal . situation de famille . veuf:
+  titre: Veuf(ve)
+
+impôt . foyer fiscal . enfants à charge:
+  question: Combien d’enfants sont à charge du foyer fiscal ?
+  par défaut: 0 enfant
+
+impôt . foyer fiscal . parent isolé:
+  par défaut: non
+  question:
+    variations:
+      - si: impôt . foyer fiscal . enfants à charge > 1
+        alors:
+          texte: Vivez-vous seul avec vos enfants ?
+      - sinon:
+          texte: Vivez-vous seul avec votre enfant ?
+  applicable si:
+    toutes ces conditions:
+      - enfants à charge > 0 enfant
+      - situation de famille = 'célibataire'
+
+impôt . foyer fiscal . nombre de parts:
+  unité: part
+  formule:
+    somme:
+      - principales
+      - rattachées
+      - majoration personne seule avec enfant
+      - majoration personne veuve avec enfant
+
+impôt . foyer fiscal . nombre de parts . principales:
+  formule:
+    variations:
+      - si: situation de famille = 'couple'
+        alors: 2 part
+      - sinon: 1 part
+
+impôt . foyer fiscal . nombre de parts . rattachées:
+  variations:
+    - si: enfants à charge <= 2 enfant
+      alors: 0.5 part/enfant * enfants à charge
+    - sinon: (1 part/enfant * enfants à charge) - 1 part
+
+impôt . foyer fiscal . nombre de parts . majoration personne seule avec enfant:
+  description: >-
+    Les contribuables célibataires, divorcés ou séparés, qui vivent seuls et
+    supportent effectivement la charge d’un ou plusieurs enfants bénéficient
+    d’une demie-part supplémentaire de quotient familial.
+  applicable si: parent isolé
+  formule: 0.5 part
+  références:
+    Bofip: https://bofip.impots.gouv.fr/bofip/2028-PGP.html/identifiant=BOI-IR-LIQ-10-20-20-10-20140326#Majoration_pour_les_personn_22
+
+impôt . foyer fiscal . nombre de parts . majoration personne veuve avec enfant:
+  description: >-
+    Une personne veuve avec des enfants à charge bénéficie d’une part
+    supplémentaire pour le calcul du quotient familial, ce qui correspond au
+    maintient de la part de la personne décédée.
+
+    Une personne veuve sans enfant à charge ne bénéficie en revanche d’aucune
+    majoration.
+  applicable si:
+    toutes ces conditions:
+      - situation de famille = 'veuf'
+      - enfants à charge >= 1 enfant
+  formule: 1 part
+  références:
+    Quotient familial d’une personne veuve: https://www.service-public.fr/particuliers/vosdroits/F35127
+
+impôt . foyer fiscal . taux effectif:
+  unité: '%'
+  variations:
+    - si: revenu imposable = 0
+      alors: 0%
+    - sinon: impôt à payer / revenu imposable . revenu brut
+
+impôt . foyer fiscal . revenu imposable:
+  somme:
+    - revenu d'activité abattu
+    - applicable si:
+        toutes ces conditions:
+          - dirigeant . rémunération . net . imposable
+          - entreprise . imposition . IR
+      valeur: dirigeant . rémunération . net . imposable
+    - bénéficiaire . dividendes . imposables
+    - autres revenus imposables
+
+impôt . foyer fiscal . revenu imposable . revenu brut:
+  somme:
+    - revenu imposable
+    - (- revenu d'activité abattu)
+    - revenu d'activité
+
+impôt . foyer fiscal . revenu imposable . revenu d'activité:
+  variations:
+    - si: dirigeant = non
+      alors: salarié . rémunération . net . imposable
+    - si: entreprise . imposition = 'IS'
+      alors: dirigeant . rémunération . net . imposable
+
+impôt . foyer fiscal . revenu imposable . revenu d'activité abattu:
+  description: |
+    Dans le cas général, l’impôt est calculé après l’application d’un abattement
+    forfaitaire fixe. Chacun peut néanmoins opter pour la déclaration de ses
+    *frais réels*, qui viendront remplacer ce forfait par défaut.
+  valeur: revenu d'activité
+  abattement:
+    valeur: 10% * revenu d'activité
+    plafond:
+      variations:
+        - si: date >= 01/2026
+          alors: 14555 €/an
+        - si: date >= 01/2025
+          alors: 14426 €/an
+        - si: date >= 01/2024
+          alors: 14171 €/an
+        - si: date >= 01/2023
+          alors: 13522 €/an
+        - si: date >= 01/2022
+          alors: 12829 €/an
+        - si: date >= 01/2021
+          alors: 12652 €/an
+        - si: date >= 01/2020
+          alors: 12627 €/an
+    plancher:
+      variations:
+        - si: date >= 01/2026
+          alors: 509 €/an
+        - si: date >= 01/2025
+          alors: 504 €/an
+        - si: date >= 01/2024
+          alors: 495 €/an
+        - si: date >= 01/2023
+          alors: 472 €/an
+        - si: date >= 01/2022
+          alors: 448 €/an
+        - si: date >= 01/2021
+          alors: 442 €/an
+        - si: date >= 01/2020
+          alors: 441 €/an
+  références:
+    Frais professionnels - forfait ou frais réels: https://www.service-public.fr/particuliers/vosdroits/F1989
+    Code des impôts - Article 83: https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000037985819/
+
+impôt . foyer fiscal . revenu imposable . autres revenus imposables:
+  question: Quel est le montant total des autres revenus imposables du foyer fiscal ?
+  par défaut: 0 €/an
+
+impôt . foyer fiscal . revenu fiscal de référence:
+  description: >-
+    Le revenu fiscal de référence correspond au revenu abattu du foyer ajusté
+    avec un mécanisme de quotient et majoré d’un certains nombre d’exonérations.
+    Ces dernières sont réintégrées dans le calcul.
+  formule:
+    somme:
+      - revenu imposable
+      - salarié . rémunération . net . imposable . exonération prime
+        d'impatriation
+  références:
+    Article 1417 du Code général des impôts: https://www.legifrance.gouv.fr/affichCodeArticle.do?idArticle=LEGIARTI000034596743&cidTexte=LEGITEXT000006069577&categorieLien=id&dateTexte=20170505
+
+impôt . foyer fiscal . impôt à payer:
+  formule:
+    somme:
+      - impôt sur le revenu
+      - CEHR
+
+# [TODO] Il semble y avoir un soucis: selon la doc impot.gouv, le "revenu brut"
+# (sur lequel est basé l'impôt brut ci-dessous sans doute?) ne doit pas contenir
+# les revenus de capitaux mobiliers. Donc les dividendes imposables au barème ne
+# devraient dans ce cas pas se voir appliquer de décote pour les bas revenus. Il
+# faudrait sans doute revoir l'ensemble des règles de calcul autour du barème
+# pour bien séparer celles qui ne s'appliquent qu'aux revenus brut.
+impôt . foyer fiscal . impôt sur le revenu:
+  unité: €/an
+  formule:
+    somme:
+      - valeur: impôt brut
+        abattement: décote
+      - impôt . dividendes . PFU
+  références:
+    Fiche service-public.fr: https://www.service-public.fr/particuliers/vosdroits/F34328
+
+impôt . foyer fiscal . impôt sur le revenu . décote:
+  description:
+    Une décote est appliquée après le barème de l’impôt sur le revenu, pour réduire
+    l’impôt des bas revenus.
+  variations:
+    - si: foyer fiscal . situation de famille = 'couple'
+      alors:
+        variations:
+          - si: date >= 01/2026
+            alors: 1483 €/an
+          - si: date >= 01/2025
+            alors: 1470 €/an
+          - si: date >= 01/2024
+            alors: 1444 €/an
+          - si: date >= 01/2023
+            alors: 1378 €/an
+          - si: date >= 01/2022
+            alors: 1307 €/an
+          - si: date >= 01/2021
+            alors: 1289 €/an
+          - si: date >= 01/2020
+            alors: 1286 €/an
+    - sinon:
+        variations:
+          - si: date >= 01/2026
+            alors: 897 €/an
+          - si: date >= 01/2025
+            alors: 889 €/an
+          - si: date >= 01/2024
+            alors: 873 €/an
+          - si: date >= 01/2023
+            alors: 833 €/an
+          - si: date >= 01/2022
+            alors: 790 €/an
+          - si: date >= 01/2021
+            alors: 779 €/an
+          - si: date >= 01/2020
+            alors: 777 €/an
+  abattement: 45.25% * impôt brut
+  références:
+    Pouvez-vous bénéficier de la décote de l’impôt sur le revenu ?: https://www.economie.gouv.fr/particuliers/decote-impot-revenu
+    Calculer l’impôt net à payer: https://www.service-public.fr/particuliers/vosdroits/F34328#fiche-item-aria-5
+    Article 197 du Code général des impôts (I.4.a.): https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000042907517
+
+impôt . foyer fiscal . impôt sur le revenu . quotient familial:
+  unité: €/part/an
+  valeur: revenu imposable / nombre de parts
+
+impôt . foyer fiscal . impôt sur le revenu . quotient familial . plafond avantage:
+  somme:
+    - plafonnement général
+    - plafonnement parent isolé
+
+  références:
+    Calculer l’impôt net à payer: https://www.service-public.fr/particuliers/vosdroits/F34328#fiche-item-aria-5
+    Article 197 du Code général des impôts: https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000046860759
+    Bofip 2023: https://bofip.impots.gouv.fr/bofip/2494-PGP.html/identifiant=BOI-IR-LIQ-20-20-20-20230626
+    Bofip 2022: https://bofip.impots.gouv.fr/bofip/2494-PGP.html/identifiant=BOI-IR-LIQ-20-20-20-20220516#III._Niveau_du_plafonnement_16
+    Bofip 2021: https://bofip.impots.gouv.fr/bofip/2494-PGP.html/identifiant=BOI-IR-LIQ-20-20-20-20210330#III._Niveau_du_plafonnement_12
+    Bofip 2020: https://bofip.impots.gouv.fr/bofip/2494-PGP.html/identifiant=BOI-IR-LIQ-20-20-20-20200515#III._Niveau_du_plafonnement_12
+
+  avec:
+    plafonnement général:
+      produit:
+        - variations:
+            - si: date >= 01/2026
+              alors: 1807 €/demi-part/an
+            - si: date >= 01/2025
+              alors: 1791 €/demi-part/an
+            - si: date >= 01/2024
+              alors: 1759 €/demi-part/an
+            - si: date >= 01/2023
+              alors: 1678 €/demi-part/an
+            - si: date >= 01/2022
+              alors: 1592 €/demi-part/an
+            - si: date >= 01/2021
+              alors: 1570 €/demi-part/an
+            - si: date >= 01/2020
+              alors: 1567 €/demi-part/an
+        - produit:
+            - valeur: nombre de parts . rattachées
+              abattement: nombre de parts . majoration personne seule avec enfant
+            - 2 demi-part/part
+      références:
+        Article 197 du Code général des impôts (I.2.): https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000048805432
+
+    plafonnement parent isolé:
+      description: |
+        Avantage de quotient familial procuré par le premier enfant à charge des
+        contribuables célibataires ou divorcés vivant seuls.
+      applicable si: nombre de parts . majoration personne seule avec enfant
+      variations:
+        - si: date >= 01/2026
+          alors: 4262 €/an
+        - si: date >= 01/2025
+          alors: 4224 €/an
+        - si: date >= 01/2024
+          alors: 4149 €/an
+        - si: date >= 01/2023
+          alors: 3959 €/an
+        - si: date >= 01/2022
+          alors: 3756 €/an
+        - si: date >= 01/2021
+          alors: 3704 €/an
+        - si: date >= 01/2020
+          alors: 3697 €/an
+      références:
+        Article 197 du Code général des impôts (I.2.): https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000048805432
+
+impôt . foyer fiscal . impôt sur le revenu . impôt brut . par part:
+  description: |
+    Voici le fameux barème de l’impôt sur le revenu. C’est un barème marginal à 5
+    tranches.
+    Une contribution sur les hauts revenus ajoute deux tranches supplémentaires.
+
+    Attention : pour un revenu de 100 000€ annuels, le contribuable ne paiera pas
+    41 000 € d’impôt (le taux de la 4ème tranche est 41%) ! Ces 41% sont appliqués
+    uniquement à la part de ses revenus supérieure à 72 617 €.
+  barème:
+    assiette: assiette
+    tranches:
+      - taux: 0%
+        plafond:
+          variations:
+            - si: date >= 01/2026
+              alors: 11600 €/part/an
+            - si: date >= 01/2025
+              alors: 11497 €/part/an
+            - si: date >= 01/2024
+              alors: 11294 €/part/an
+            - si: date >= 01/2023
+              alors: 10777 €/part/an
+            - si: date >= 01/2022
+              alors: 10225 €/part/an
+            - si: date >= 01/2021
+              alors: 10084 €/part/an
+      - taux: 11%
+        plafond: plafond tranche 2
+      - taux: 30%
+        plafond:
+          variations:
+            - si: date >= 01/2026
+              alors: 84577 €/part/an
+            - si: date >= 01/2025
+              alors: 83823 €/part/an
+            - si: date >= 01/2024
+              alors: 82341 €/part/an
+            - si: date >= 01/2023
+              alors: 78570 €/part/an
+            - si: date >= 01/2022
+              alors: 74545 €/part/an
+            - si: date >= 01/2021
+              alors: 73516 €/part/an
+      - taux: 41%
+        plafond:
+          variations:
+            - si: date >= 01/2026
+              alors: 181917 €/part/an
+            - si: date >= 01/2025
+              alors: 180294 €/part/an
+            - si: date >= 01/2024
+              alors: 177106 €/part/an
+            - si: date >= 01/2023
+              alors: 168994 €/part/an
+            - si: date >= 01/2022
+              alors: 160336 €/part/an
+            - si: date >= 01/2021
+              alors: 158122 €/part/an
+      - taux: 45%
+  références:
+    Article 197 du Code général des impôts: https://www.legifrance.gouv.fr/affichCodeArticle.do?cidTexte=LEGITEXT000006069577&idArticle=LEGIARTI000006308322
+    Comment calculer votre impôt d’après le barème de l’impôt sur le revenu ?: https://www.economie.gouv.fr/particuliers/tranches-imposition-impot-revenu
+
+  avec:
+    assiette: quotient familial
+
+    plafond tranche 2:
+      variations:
+        - si: date >= 01/2026
+          alors: 29579 €/part/an
+        - si: date >= 01/2025
+          alors: 29315 €/part/an
+        - si: date >= 01/2024
+          alors: 28797 €/part/an
+        - si: date >= 01/2023
+          alors: 27478 €/part/an
+        - si: date >= 01/2022
+          alors: 26070 €/part/an
+        - si: date >= 01/2021
+          alors: 25710 €/part/an
+
+impôt . foyer fiscal . impôt sur le revenu . impôt brut . sans parts rattachées:
+  valeur: par part
+  contexte:
+    par part . assiette: revenu imposable / nombre de parts . principales
+
+impôt . foyer fiscal . impôt sur le revenu . impôt brut:
+  valeur:
+    produit:
+      - impôt brut . par part
+      - nombre de parts
+  plancher:
+    valeur:
+      produit:
+        - impôt brut . sans parts rattachées
+        - nombre de parts . principales
+    abattement: quotient familial . plafond avantage
+  références:
+    BOFIP: https://bofip.impots.gouv.fr/bofip/2494-PGP.html/identifiant%3DBOI-IR-LIQ-20-20-20-20210330
+
+impôt . foyer fiscal . CEHR:
+  unité: €/an
+  formule:
+    variations:
+      - si: foyer fiscal . situation de famille = 'couple'
+        alors:
+          barème:
+            assiette: revenu imposable
+            tranches:
+              - taux: 0%
+                plafond: 500000 €/an
+              - taux: 3%
+                plafond: 1000000 €/an
+              - taux: 4%
+      - sinon:
+          barème:
+            assiette: revenu imposable
+            tranches:
+              - taux: 0%
+                plafond: 250000 €/an
+              - taux: 3%
+                plafond: 500000 €/an
+              - taux: 4%
+  références:
+    contribution exceptionnelle sur les hauts revenus: https://www.service-public.fr/particuliers/vosdroits/F31130
+    Article 223 sexies du Code général des impôts: https://www.legifrance.gouv.fr/affichCode.do?idSectionTA=LEGISCTA000025049019&cidTexte=LEGITEXT000006069577
+    Bofip.impots.gouv.fr: http://bofip.impots.gouv.fr/bofip/7804-PGP
+
+impôt . domiciliation étranger non implémentée:
+  toutes ces conditions:
+    - situation personnelle . domiciliation fiscale à l'étranger
+    - salarié
+  type: notification
+  sévérité: avertissement
+  description: |
+    La retenue à la source pour les non-résident n’est pas encore implémentée. Pour
+    en savoir plus, se référer à la [documentation fiscale](https://www.impots.gouv.fr/international-particulier/dois-je-declarer-mes-revenus-en-france)
+
+impôt . dividendes:
+  valeur: oui
+  applicable si: bénéficiaire . dividendes . bruts > 0
+  titre: Imposition des dividendes
+
+impôt . dividendes . impôt sans dividendes:
+  description: Montant de l’impôt si aucun dividende n’était touché
+  valeur: impôt . foyer fiscal . impôt à payer
+  contexte:
+    bénéficiaire . dividendes . bruts: 0 €/an
+
+impôt . dividendes . montant en sus des autres revenus imposables:
+  variations:
+    - si: méthode de calcul . PFU
+      alors: PFU
+    - sinon: impôt . foyer fiscal . impôt à payer - impôt sans dividendes
+  description:
+    Montant de l’impôt sur dividendes, en sus de l’impôt sur les autres
+    revenus imposables
+
+impôt . dividendes . PFU:
+  applicable si: impôt . méthode de calcul . PFU
+  produit:
+    - bénéficiaire . dividendes . bruts
+    - 12.8%
+  titre: Montant de l’impôt sur dividendes au titre du Prélèvement Forfaitaire
+    Unique (ou "flat tax")
+  description: |
+    Ce montant est à verser sous forme d’acompte au moment du versement des
+    dividendes.
+
+    L’acompte n’est pas obligatoire au cas où le revenu fiscal n-2 est inférieur
+    à
+
+      - 50 000 € pour une personne seule,
+      - 75 000 € pour un couple soumis à l’imposition commune (mariés ou
+        pacsés).
+
+    Dans ce cas, le bénéficiaire peut faire la demande de dispense au plus tard
+    le 30 novembre de l’année précédant celle du paiement
+  références:
+    Fiche service-public.fr: https://www.service-public.fr/professionnels-entreprises/vosdroits/F32963
+    Article 200 A du Code Général des Impôts: https://www.legifrance.gouv.fr/codes/id/LEGISCTA000006179579/
+    Article 117 quater du Code Général des Impôts: https://www.legifrance.gouv.fr/codes/id/LEGIARTI000036428175/#LEGIARTI000036428175
